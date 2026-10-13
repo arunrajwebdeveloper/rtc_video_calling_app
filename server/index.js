@@ -20,30 +20,45 @@ io.on("connection", (socket) => {
   socket.on("join-room", (roomID) => {
     socket.join(roomID);
     console.log(`User ${socket.id} joined room: ${roomID}`);
-    const otherUser = Array.from(
-      io.sockets.adapter.rooms.get(roomID) || [],
-    ).find((id) => id !== socket.id);
-    if (otherUser) {
-      socket.emit("other-user", otherUser);
-      socket.to(otherUser).emit("user-joined", socket.id);
-    }
+
+    const roomSockets = Array.from(io.sockets.adapter.rooms.get(roomID) || []);
+    const otherUsers = roomSockets.filter((id) => id !== socket.id);
+
+    // Send existing users in room to the newcomer
+    socket.emit("room-users", otherUsers);
+    // Notify others in room
+    socket.to(roomID).emit("user-joined", socket.id);
   });
 
-  socket.on("offer", ({ payload, target }) => {
-    io.to(target).emit("offer", { payload, caller: socket.id });
+  socket.on("call-user", ({ offer, target }) => {
+    io.to(target).emit("incoming-call", { offer, caller: socket.id });
   });
 
-  socket.on("answer", ({ payload, target }) => {
-    io.to(target).emit("answer", { payload, caller: socket.id });
+  socket.on("accept-call", ({ answer, target }) => {
+    io.to(target).emit("call-accepted", { answer });
+  });
+
+  socket.on("reject-call", ({ target }) => {
+    io.to(target).emit("call-rejected");
+  });
+
+  socket.on("cancel-call", ({ target }) => {
+    io.to(target).emit("call-cancelled");
   });
 
   socket.on("ice-candidate", ({ target, candidate }) => {
-    io.to(target).emit("ice-candidate", { candidate, sender: socket.id });
+    io.to(target).emit("ice-candidate", { candidate });
+  });
+
+  socket.on("hang-up", ({ target }) => {
+    if (target) {
+      io.to(target).emit("hang-up");
+    }
   });
 
   socket.on("disconnect", () => {
     console.log(`User disconnected: ${socket.id}`);
-    socket.broadcast.emit("user-disconnected", socket.id);
+    socket.broadcast.emit("user-disconnected");
   });
 });
 
