@@ -155,6 +155,7 @@ export default function App() {
   }
 
   // Call partner manually once they are in the room
+
   async function callPartner() {
     if (!partnerID) {
       alert("No partner in the room yet!");
@@ -179,7 +180,7 @@ export default function App() {
     }
   }
 
-  // Click 'Attend'
+  // Click 'Attend' buttons
   async function acceptCall() {
     if (!incomingCall) return;
     const { payload, caller } = incomingCall;
