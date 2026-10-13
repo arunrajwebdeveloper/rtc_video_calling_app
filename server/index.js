@@ -54,10 +54,10 @@ io.on("connection", (socket) => {
     io.to(target).emit("ice-candidate", { candidate, sender: socket.id });
   });
 
-  // socket.on("disconnect", () => {
-  //   console.log(`User disconnected: ${socket.id}`);
-  //   socket.broadcast.emit("user-disconnected", socket.id);
-  // });
+  // New: Broadcast camera/mic mute status to peer
+  socket.on("media-toggle", ({ target, type, muted }) => {
+    io.to(target).emit("media-toggle", { type, muted });
+  });
 
   socket.on("disconnect", () => {
     console.log(`User disconnected: ${socket.id}`);

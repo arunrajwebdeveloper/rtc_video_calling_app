@@ -18,8 +18,15 @@ export default function App() {
 
   const [incomingCall, setIncomingCall] = useState(null); // { payload, caller }
   const [callAccepted, setCallAccepted] = useState(false);
+
+  // Local mute states
   const [micMuted, setMicMuted] = useState(false);
   const [camMuted, setCamMuted] = useState(false);
+
+  // Remote mute states (from partner)
+  const [remoteCamMuted, setRemoteCamMuted] = useState(false);
+  const [remoteMicMuted, setRemoteMicMuted] = useState(false);
+
   const [partnerID, setPartnerID] = useState(null);
 
   const socketRef = useRef();
@@ -73,9 +80,15 @@ export default function App() {
       }
     });
 
+    // Listen for partner's mic/cam toggle events
+    socketRef.current.on("media-toggle", ({ type, muted }) => {
+      if (type === "video") setRemoteCamMuted(muted);
+      if (type === "audio") setRemoteMicMuted(muted);
+    });
+
     socketRef.current.on("call-rejected", () => {
-      alert("Call was rejected by partner.");
       cleanupCall();
+      alert("Call was rejected by partner.");
     });
 
     socketRef.current.on("user-disconnected", () => {
@@ -195,7 +208,15 @@ export default function App() {
     const audioTrack = localStream.current?.getAudioTracks()[0];
     if (audioTrack) {
       audioTrack.enabled = !audioTrack.enabled;
-      setMicMuted(!audioTrack.enabled);
+      const newMutedState = !audioTrack.enabled;
+      setMicMuted(newMutedState);
+      if (partnerID) {
+        socketRef.current.emit("media-toggle", {
+          target: partnerID,
+          type: "audio",
+          muted: newMutedState,
+        });
+      }
     }
   };
 
@@ -203,7 +224,15 @@ export default function App() {
     const videoTrack = localStream.current?.getVideoTracks()[0];
     if (videoTrack) {
       videoTrack.enabled = !videoTrack.enabled;
-      setCamMuted(!videoTrack.enabled);
+      const newMutedState = !videoTrack.enabled;
+      setCamMuted(newMutedState);
+      if (partnerID) {
+        socketRef.current.emit("media-toggle", {
+          target: partnerID,
+          type: "video",
+          muted: newMutedState,
+        });
+      }
     }
   };
 
@@ -215,6 +244,8 @@ export default function App() {
     }
     setCallAccepted(false);
     setIncomingCall(null);
+    setRemoteCamMuted(false);
+    setRemoteMicMuted(false);
     iceCandidateQueue.current = [];
   };
 
@@ -367,7 +398,8 @@ export default function App() {
               }}
             >
               <p style={{ margin: "0 0 0.5rem 0", fontWeight: "bold" }}>
-                You (Local)
+                You (Local) {micMuted && "(Mic Muted)"}{" "}
+                {camMuted && "(Cam Off)"}
               </p>
               <video
                 ref={userVideo}
@@ -391,20 +423,73 @@ export default function App() {
               }}
             >
               <p style={{ margin: "0 0 0.5rem 0", fontWeight: "bold" }}>
-                Partner (Remote)
+                Partner (Remote) {remoteMicMuted && "🔇 (Mic Muted)"}
               </p>
-              <video
-                ref={partnerVideo}
-                autoPlay
-                playsInline
+
+              <div
                 style={{
+                  position: "relative",
                   width: "350px",
                   height: "260px",
-                  background: "#000",
-                  borderRadius: "4px",
-                  objectFit: "cover",
                 }}
-              />
+              >
+                {/* 1. Show if call is NOT yet accepted */}
+                {!callAccepted && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      width: "100%",
+                      height: "100%",
+                      background: "#0f172a",
+                      borderRadius: "4px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#94a3b8",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    Call not connected
+                  </div>
+                )}
+
+                {/* 2. Show if call IS accepted, but partner turned off video */}
+                {callAccepted && remoteCamMuted && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      width: "100%",
+                      height: "100%",
+                      background: "#0f172a",
+                      borderRadius: "4px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#f87171",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    Partner Camera is Off
+                  </div>
+                )}
+
+                <video
+                  ref={partnerVideo}
+                  autoPlay
+                  playsInline
+                  style={{
+                    width: "350px",
+                    height: "260px",
+                    background: "#000",
+                    borderRadius: "4px",
+                    objectFit: "cover",
+                  }}
+                />
+              </div>
             </div>
           </div>
 
