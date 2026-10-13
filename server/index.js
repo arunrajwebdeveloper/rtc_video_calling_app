@@ -18,8 +18,9 @@ const io = new Server(server, {
     methods: ["GET", "POST"],
   },
 });
-
+// ----------------------
 // MongoDB connection (Optional - won't crash if MONGO_URI is missing)
+// ----------------------
 const MONGO_URI = process.env.MONGO_URI;
 if (MONGO_URI) {
   mongoose
