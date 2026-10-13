@@ -38,21 +38,15 @@ io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
   socket.on("join-room", async (roomId) => {
-    const room = io.sockets.adapter.rooms.get(roomId);
-    const numClients = room ? room.size : 0;
-
-    if (numClients >= 2) {
-      socket.emit("room-full");
-      return;
-    }
-
     socket.join(roomId);
-    await CallLog.create({ roomId }).catch(() => {});
+    const room = io.sockets.adapter.rooms.get(roomId);
+    console.log(`Room ${roomId} now has ${room ? room.size : 0} clients.`);
 
-    const currentRoom = io.sockets.adapter.rooms.get(roomId);
-    // If someone is already waiting in the room, notify them that a peer arrived
-    if (currentRoom.size === 2) {
+    if (room && room.size === 2) {
+      console.log(`Notifying first user in room ${roomId} that peer joined.`);
       socket.to(roomId).emit("peer-joined");
+    } else if (room && room.size > 2) {
+      socket.emit("room-full");
     }
   });
 
