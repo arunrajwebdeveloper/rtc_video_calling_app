@@ -27,6 +27,7 @@ export default function App() {
 
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
+  const pendingOfferRef = useRef(null); // Replaces window.pendingOffer for safety
 
   useEffect(() => {
     const initLocalVideo = async () => {
@@ -41,13 +42,12 @@ export default function App() {
         }
       } catch (err) {
         console.error("Media access error:", err);
-        alert("Could not access camera/microphone. Please check permissions.");
+        alert("Could not access camera/microphone. Check permissions.");
       }
     };
 
     initLocalVideo();
 
-    // Initialize socket with transport fallbacks for Render
     socketRef.current = io(SOCKET_SERVER_URL, {
       transports: ["websocket", "polling"],
     });
@@ -63,24 +63,24 @@ export default function App() {
     });
 
     socketRef.current.on("room-full", () => {
-      alert("Room is full!");
+      alert("Room is full! Maximum 2 participants allowed.");
       resetCallState(false);
     });
 
     socketRef.current.on("peer-joined", async () => {
-      console.log("Peer joined. Creating offer as Caller...");
+      console.log("Peer joined event received. Creating offer as Caller...");
       setIsCalling(true);
       await createOffer();
     });
 
     socketRef.current.on("offer", async (offer) => {
-      console.log("Received incoming call offer");
-      window.pendingOffer = offer;
+      console.log("Received incoming call offer from peer");
+      pendingOfferRef.current = offer;
       setIncomingCall(true);
     });
 
     socketRef.current.on("answer", async (answer) => {
-      console.log("Received answer");
+      console.log("Received answer from peer");
       if (pcRef.current) {
         await pcRef.current.setRemoteDescription(
           new RTCSessionDescription(answer),
@@ -109,7 +109,8 @@ export default function App() {
     });
 
     socketRef.current.on("hangup", () => {
-      console.log("Peer hung up");
+      console.log("Peer hung up the call");
+      alert("The other user has left the call.");
       resetCallState(false);
     });
 
@@ -146,6 +147,9 @@ export default function App() {
       console.log("SUCCESS: Remote video track received!", event.streams[0]);
       if (remoteVideoRef.current) {
         remoteVideoRef.current.srcObject = event.streams[0];
+        remoteVideoRef.current
+          .play()
+          .catch((err) => console.error("Autoplay blocked:", err));
       }
     };
 
@@ -158,14 +162,23 @@ export default function App() {
       }
     };
 
+    pc.oniceconnectionstatechange = () => {
+      console.log("ICE Connection State:", pc.iceConnectionState);
+    };
+
     return pc;
   };
 
   const joinRoom = async () => {
     const cleanRoomId = roomId.trim();
     if (!cleanRoomId) return alert("Enter or generate a Room ID first");
-    if (!isConnected) return alert("Not connected to signaling server yet.");
-    console.log("Joining room:", cleanRoomId);
+    if (!isConnected)
+      return alert(
+        "Still connecting to server. Please wait a few seconds for Render to wake up.",
+      );
+
+    console.log("Joining room with ID:", cleanRoomId);
+    setRoomId(cleanRoomId);
     setJoined(true);
     socketRef.current.emit("join-room", cleanRoomId);
   };
@@ -183,15 +196,17 @@ export default function App() {
 
     const pc = createPeerConnection(roomId);
 
-    await pc.setRemoteDescription(
-      new RTCSessionDescription(window.pendingOffer),
-    );
-    await processQueuedCandidates();
+    if (pendingOfferRef.current) {
+      await pc.setRemoteDescription(
+        new RTCSessionDescription(pendingOfferRef.current),
+      );
+      await processQueuedCandidates();
 
-    const answer = await pc.createAnswer();
-    await pc.setLocalDescription(answer);
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
 
-    socketRef.current.emit("answer", { roomId, answer });
+      socketRef.current.emit("answer", { roomId, answer });
+    }
   };
 
   const rejectCall = () => {
@@ -214,6 +229,7 @@ export default function App() {
     }
 
     iceCandidateQueueRef.current = [];
+    pendingOfferRef.current = null;
     setJoined(false);
     setIsCalling(false);
     setIncomingCall(false);
@@ -236,12 +252,14 @@ export default function App() {
         fontFamily: "sans-serif",
       }}
     >
-      <h1>Simple WebRTC Video Chat</h1>
+      <h1>WebRTC Video Chat</h1>
       <p
         style={{ fontSize: "14px", color: isConnected ? "#16a34a" : "#dc2626" }}
       >
         Server Status:{" "}
-        {isConnected ? "Connected 🟢" : "Connecting / Disconnected 🔴"}
+        {isConnected
+          ? "Connected 🟢"
+          : "Connecting to Render Backend... 🔴 (May take up to 30s)"}
       </p>
 
       {/* Video Feeds Display */}
@@ -271,23 +289,21 @@ export default function App() {
           />
         </div>
 
-        {inCall && (
-          <div>
-            <h4>Remote Video</h4>
-            <video
-              ref={remoteVideoRef}
-              autoPlay
-              playsInline
-              style={{
-                width: "320px",
-                height: "240px",
-                background: "#000",
-                borderRadius: "8px",
-                border: "2px solid #2563eb",
-              }}
-            />
-          </div>
-        )}
+        <div>
+          <h4>Remote Video</h4>
+          <video
+            ref={remoteVideoRef}
+            autoPlay
+            playsInline
+            style={{
+              width: "320px",
+              height: "240px",
+              background: "#000",
+              borderRadius: "8px",
+              border: "2px solid #2563eb",
+            }}
+          />
+        </div>
       </div>
 
       {/* 1. Lobby State */}
@@ -325,14 +341,15 @@ export default function App() {
           />
           <button
             onClick={joinRoom}
+            disabled={!isConnected}
             style={{
               padding: "10px 20px",
               fontSize: "16px",
-              background: "#2563eb",
+              background: isConnected ? "#2563eb" : "#94a3b8",
               color: "#fff",
               border: "none",
               borderRadius: "4px",
-              cursor: "pointer",
+              cursor: isConnected ? "pointer" : "not-allowed",
             }}
           >
             Join Room
@@ -361,7 +378,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 3. Calling State (First User when peer joins) */}
+      {/* 3. Calling State */}
       {isCalling && !inCall && (
         <div style={{ margin: "20px 0" }}>
           <h3>Calling peer in room {roomId}...</h3>
@@ -381,7 +398,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 4. Incoming Call State (Second User receives offer -> Shows Pick Up button) */}
+      {/* 4. Incoming Call State */}
       {incomingCall && (
         <div
           style={{
