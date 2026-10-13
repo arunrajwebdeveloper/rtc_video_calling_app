@@ -6,8 +6,14 @@ const SOCKET_SERVER_URL =
 
 const ICE_SERVERS = {
   iceServers: [
-    { urls: "stun:stun.l.google.com:19302" },
-    { urls: "stun:stun1.l.google.com:19302" },
+    // { urls: "stun:stun.l.google.com:19302" },
+    // { urls: "stun:stun1.l.google.com:19302" },
+    {
+      urls: [
+        "stun:stun.l.google.com:19302",
+        "stun:global.stun.twilio.com:3478",
+      ],
+    },
   ],
 };
 
@@ -381,48 +387,48 @@ export default function App() {
       )}
 
       {/* 4. Incoming Call State (Second User receives offer -> Shows Pick Up button) */}
-      {/* {incomingCall && ( */}
-      <div
-        style={{
-          background: "#1e293b",
-          color: "#fff",
-          padding: "20px",
-          borderRadius: "8px",
-          margin: "20px 0",
-          border: "2px solid #16a34a",
-        }}
-      >
-        <h3>Incoming Call in Room: {roomId}</h3>
-        <button
-          onClick={pickCall}
+      {incomingCall && (
+        <div
           style={{
-            padding: "10px 20px",
-            background: "#16a34a",
+            background: "#1e293b",
             color: "#fff",
-            border: "none",
-            borderRadius: "4px",
-            marginRight: "10px",
-            fontWeight: "bold",
-            cursor: "pointer",
+            padding: "20px",
+            borderRadius: "8px",
+            margin: "20px 0",
+            border: "2px solid #16a34a",
           }}
         >
-          Pick Up
-        </button>
-        <button
-          onClick={rejectCall}
-          style={{
-            padding: "10px 20px",
-            background: "#dc2626",
-            color: "#fff",
-            border: "none",
-            borderRadius: "4px",
-            cursor: "pointer",
-          }}
-        >
-          Reject
-        </button>
-      </div>
-      {/* )} */}
+          <h3>Incoming Call in Room: {roomId}</h3>
+          <button
+            onClick={pickCall}
+            style={{
+              padding: "10px 20px",
+              background: "#16a34a",
+              color: "#fff",
+              border: "none",
+              borderRadius: "4px",
+              marginRight: "10px",
+              fontWeight: "bold",
+              cursor: "pointer",
+            }}
+          >
+            Pick Up
+          </button>
+          <button
+            onClick={rejectCall}
+            style={{
+              padding: "10px 20px",
+              background: "#dc2626",
+              color: "#fff",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
+          >
+            Reject
+          </button>
+        </div>
+      )}
 
       {/* 5. Active Call State */}
       {inCall && (
