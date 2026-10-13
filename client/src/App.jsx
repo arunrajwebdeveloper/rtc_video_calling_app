@@ -16,11 +16,6 @@ export default function App() {
   const [roomID, setRoomID] = useState("");
   const [inputRoom, setInputRoom] = useState("");
 
-  // Call States: 'IDLE' | 'CALLING' | 'RECEIVED_CALL' | 'CONNECTED'
-  const [callStatus, setCallStatus] = useState("IDLE");
-  const [partnerID, setPartnerID] = useState(null);
-  const [incomingOffer, setIncomingOffer] = useState(null);
-
   const socketRef = useRef();
   const userVideo = useRef();
   const partnerVideo = useRef();
@@ -31,54 +26,44 @@ export default function App() {
   useEffect(() => {
     socketRef.current = io(serverURL);
 
-    socketRef.current.on("connect", () => {
-      console.log("Connected to server:", socketRef.current.id);
-    });
-
-    socketRef.current.on("room-users", (users) => {
-      if (users.length > 0) {
-        setPartnerID(users[0]);
-        console.log("Partner found in room:", users[0]);
-      }
+    socketRef.current.on("other-user", (id) => {
+      console.log("Other user found in room, calling:", id);
+      callUser(id);
     });
 
     socketRef.current.on("user-joined", (id) => {
-      setPartnerID(id);
-      console.log("New partner joined:", id);
+      console.log("New user joined:", id);
     });
 
-    socketRef.current.on("incoming-call", async ({ offer, caller }) => {
-      console.log("Incoming call from:", caller);
-      setPartnerID(caller);
-      setIncomingOffer(offer);
-      setCallStatus("RECEIVED_CALL");
-    });
+    socketRef.current.on("offer", async ({ payload, caller }) => {
+      console.log("Received offer from:", caller);
+      const pc = createPeerConnection(caller);
+      await pc.setRemoteDescription(new RTCSessionDescription(payload));
 
-    socketRef.current.on("call-accepted", async ({ answer }) => {
-      console.log("Call accepted by partner");
-      if (peerConnection.current) {
-        await peerConnection.current.setRemoteDescription(
-          new RTCSessionDescription(answer),
-        );
-        while (iceCandidatesQueue.current.length > 0) {
-          const candidate = iceCandidatesQueue.current.shift();
-          await peerConnection.current.addIceCandidate(
-            new RTCIceCandidate(candidate),
-          );
-        }
+      // Flush any queued ICE candidates
+      while (iceCandidatesQueue.current.length > 0) {
+        const candidate = iceCandidatesQueue.current.shift();
+        await pc.addIceCandidate(new RTCIceCandidate(candidate));
       }
-      setCallStatus("CONNECTED");
+
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      socketRef.current.emit("answer", { payload: answer, target: caller });
     });
 
-    socketRef.current.on("call-rejected", () => {
-      alert("Call was rejected by partner.");
-      cleanupCall();
-    });
+    socketRef.current.on("answer", async ({ payload }) => {
+      console.log("Received answer");
+      await peerConnection.current.setRemoteDescription(
+        new RTCSessionDescription(payload),
+      );
 
-    socketRef.current.on("call-cancelled", () => {
-      alert("Partner cancelled the call.");
-      setCallStatus("IDLE");
-      setIncomingOffer(null);
+      // Flush any queued ICE candidates
+      while (iceCandidatesQueue.current.length > 0) {
+        const candidate = iceCandidatesQueue.current.shift();
+        await peerConnection.current.addIceCandidate(
+          new RTCIceCandidate(candidate),
+        );
+      }
     });
 
     socketRef.current.on("ice-candidate", async ({ candidate }) => {
@@ -91,27 +76,27 @@ export default function App() {
             iceCandidatesQueue.current.push(candidate);
           }
         } catch (e) {
-          console.error("Error adding received ice candidate", e);
+          console.error("Error receiving ice candidate", e);
         }
       }
     });
 
-    socketRef.current.on("hang-up", () => {
-      alert("Partner ended the call.");
-      cleanupCall();
-    });
-
     socketRef.current.on("user-disconnected", () => {
-      alert("Partner disconnected.");
-      cleanupCall();
+      console.log("Partner disconnected");
+      if (partnerVideo.current) partnerVideo.current.srcObject = null;
+      if (peerConnection.current) {
+        peerConnection.current.close();
+        peerConnection.current = null;
+      }
+      alert("Partner disconnected");
     });
 
     return () => {
-      if (socketRef.current) socketRef.current.disconnect();
+      socketRef.current.disconnect();
     };
   }, []);
 
-  async function joinRoom() {
+  async function startCall() {
     if (!inputRoom.trim()) {
       alert("Please enter a room name");
       return;
@@ -144,10 +129,6 @@ export default function App() {
     const pc = new RTCPeerConnection(configuration);
     peerConnection.current = pc;
 
-    pc.oniceconnectionstatechange = () => {
-      console.log("ICE Connection State:", pc.iceConnectionState);
-    };
-
     if (localStream.current) {
       localStream.current.getTracks().forEach((track) => {
         pc.addTrack(track, localStream.current);
@@ -164,7 +145,7 @@ export default function App() {
     };
 
     pc.ontrack = (event) => {
-      console.log("--> SUCCESS: Received remote video track!");
+      console.log("Received remote track:", event.streams[0]);
       if (partnerVideo.current) {
         partnerVideo.current.srcObject = event.streams[0];
         partnerVideo.current
@@ -176,77 +157,11 @@ export default function App() {
     return pc;
   }
 
-  // Action: User A starts a call
-  async function startCall() {
-    if (!partnerID) {
-      alert("No partner in the room yet. Wait for someone to join!");
-      return;
-    }
-    setCallStatus("CALLING");
-    const pc = createPeerConnection(partnerID);
+  async function callUser(targetID) {
+    const pc = createPeerConnection(targetID);
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
-
-    socketRef.current.emit("call-user", { offer, target: partnerID });
-  }
-
-  // Action: User A cancels outbound call
-  function cancelCall() {
-    if (partnerID) {
-      socketRef.current.emit("cancel-call", { target: partnerID });
-    }
-    if (peerConnection.current) {
-      peerConnection.current.close();
-      peerConnection.current = null;
-    }
-    setCallStatus("IDLE");
-  }
-
-  // Action: User B accepts incoming call
-  async function acceptCall() {
-    setCallStatus("CONNECTED");
-    const pc = createPeerConnection(partnerID);
-    await pc.setRemoteDescription(new RTCSessionDescription(incomingOffer));
-
-    while (iceCandidatesQueue.current.length > 0) {
-      const candidate = iceCandidatesQueue.current.shift();
-      await pc.addIceCandidate(new RTCIceCandidate(candidate));
-    }
-
-    const answer = await pc.createAnswer();
-    await pc.setLocalDescription(answer);
-
-    socketRef.current.emit("accept-call", { answer, target: partnerID });
-  }
-
-  // Action: User B rejects incoming call
-  function rejectCall() {
-    if (partnerID) {
-      socketRef.current.emit("reject-call", { target: partnerID });
-    }
-    setCallStatus("IDLE");
-    setIncomingOffer(null);
-  }
-
-  // Action: Either user ends active call or hangs up
-  function endCall() {
-    if (partnerID) {
-      socketRef.current.emit("hang-up", { target: partnerID });
-    }
-    cleanupCall();
-  }
-
-  function cleanupCall() {
-    if (peerConnection.current) {
-      peerConnection.current.close();
-      peerConnection.current = null;
-    }
-    if (partnerVideo.current) {
-      partnerVideo.current.srcObject = null;
-    }
-    iceCandidatesQueue.current = [];
-    setCallStatus("IDLE");
-    setIncomingOffer(null);
+    socketRef.current.emit("offer", { payload: offer, target: targetID });
   }
 
   return (
@@ -286,7 +201,7 @@ export default function App() {
             }}
           />
           <button
-            onClick={joinRoom}
+            onClick={startCall}
             style={{
               padding: "0.75rem 1.5rem",
               fontSize: "1rem",
@@ -310,129 +225,8 @@ export default function App() {
               color: "#38bdf8",
             }}
           >
-            Connected to Room: <strong>{roomID}</strong> | Partner Status:{" "}
-            <span style={{ color: partnerID ? "#4ade80" : "#f87171" }}>
-              {partnerID ? "Partner Available" : "Waiting for partner..."}
-            </span>
+            Connected to Room: <strong>{roomID}</strong>
           </p>
-
-          {/* Call Control Action Bar */}
-          <div style={{ marginBottom: "1.5rem" }}>
-            {callStatus === "IDLE" && (
-              <button
-                onClick={startCall}
-                disabled={!partnerID}
-                style={{
-                  padding: "0.75rem 2rem",
-                  fontSize: "1rem",
-                  fontWeight: "bold",
-                  background: partnerID ? "#16a34a" : "#64748b",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: "6px",
-                  cursor: partnerID ? "pointer" : "not-allowed",
-                }}
-              >
-                📞 Call Partner
-              </button>
-            )}
-
-            {callStatus === "CALLING" && (
-              <div>
-                <p style={{ color: "#fbbf24", marginBottom: "0.5rem" }}>
-                  Calling partner, ringing...
-                </p>
-                <button
-                  onClick={cancelCall}
-                  style={{
-                    padding: "0.75rem 2rem",
-                    fontSize: "1rem",
-                    fontWeight: "bold",
-                    background: "#dc2626",
-                    color: "#fff",
-                    border: "none",
-                    borderRadius: "6px",
-                    cursor: "pointer",
-                  }}
-                >
-                  ❌ Cancel
-                </button>
-              </div>
-            )}
-
-            {callStatus === "RECEIVED_CALL" && (
-              <div
-                style={{
-                  background: "#334155",
-                  padding: "1rem",
-                  borderRadius: "8px",
-                  display: "inline-block",
-                }}
-              >
-                <p
-                  style={{
-                    color: "#38bdf8",
-                    marginBottom: "0.75rem",
-                    fontWeight: "bold",
-                  }}
-                >
-                  Incoming Video Call...
-                </p>
-                <div style={{ display: "flex", gap: "1rem" }}>
-                  <button
-                    onClick={acceptCall}
-                    style={{
-                      padding: "0.5rem 1.5rem",
-                      fontSize: "1rem",
-                      fontWeight: "bold",
-                      background: "#16a34a",
-                      color: "#fff",
-                      border: "none",
-                      borderRadius: "6px",
-                      cursor: "pointer",
-                    }}
-                  >
-                    ✔️ Pick Up
-                  </button>
-                  <button
-                    onClick={rejectCall}
-                    style={{
-                      padding: "0.5rem 1.5rem",
-                      fontSize: "1rem",
-                      fontWeight: "bold",
-                      background: "#dc2626",
-                      color: "#fff",
-                      border: "none",
-                      borderRadius: "6px",
-                      cursor: "pointer",
-                    }}
-                  >
-                    ❌ Reject
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {callStatus === "CONNECTED" && (
-              <button
-                onClick={endCall}
-                style={{
-                  padding: "0.75rem 2rem",
-                  fontSize: "1rem",
-                  fontWeight: "bold",
-                  background: "#dc2626",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                }}
-              >
-                🔴 End Call
-              </button>
-            )}
-          </div>
-
-          {/* Video Feeds */}
           <div
             style={{
               display: "flex",
