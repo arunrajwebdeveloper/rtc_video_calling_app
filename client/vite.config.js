@@ -1,12 +1,20 @@
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
-import mkcert from "vite-plugin-mkcert";
+// import mkcert from "vite-plugin-mkcert";
 
 // https://vite.dev/config/
+// export default defineConfig({
+//   plugins: [react(), mkcert()],
+//   server: {
+//     host: true,
+//     https: true,
+//   },
+// });
+
 export default defineConfig({
-  plugins: [react(), mkcert()],
+  base: "/rtc_video_calling_app/", // Replace with your exact GitHub repository name
+  plugins: [react()],
   server: {
-    host: true,
-    https: true,
+    port: 3040,
   },
 });
