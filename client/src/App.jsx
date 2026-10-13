@@ -16,6 +16,13 @@ export default function App() {
   const [roomID, setRoomID] = useState("");
   const [inputRoom, setInputRoom] = useState("");
 
+  // New States for Call Controls & Incoming Call
+  const [incomingCall, setIncomingCall] = useState(null);
+  const [callAccepted, setCallAccepted] = useState(false);
+  const [micMuted, setMicMuted] = useState(false);
+  const [camMuted, setCamMuted] = useState(false);
+  const [partnerID, setPartnerID] = useState(null);
+
   const socketRef = useRef();
   const userVideo = useRef();
   const partnerVideo = useRef();
@@ -26,11 +33,29 @@ export default function App() {
     socketRef.current = io(serverURL);
 
     socketRef.current.on("other-user", (id) => {
+      setPartnerID(id);
       callUser(id);
     });
 
     socketRef.current.on("user-joined", (id) => {
-      // Ready to receive offer or wait for call
+      setPartnerID(id);
+    });
+
+    socketRef.current.on("incoming-call", ({ signal, from }) => {
+      setPartnerID(from);
+      setIncomingCall({ signal, from });
+    });
+
+    socketRef.current.on("call-accepted", async (signal) => {
+      setCallAccepted(true);
+      await peerConnection.current.setRemoteDescription(
+        new RTCSessionDescription(signal),
+      );
+    });
+
+    socketRef.current.on("call-rejected", () => {
+      alert("Call rejected by partner");
+      cleanupCall();
     });
 
     socketRef.current.on("offer", async ({ payload, caller }) => {
@@ -41,6 +66,7 @@ export default function App() {
       const answer = await peerConnection.current.createAnswer();
       await peerConnection.current.setLocalDescription(answer);
       socketRef.current.emit("answer", { payload: answer, target: caller });
+      setCallAccepted(true);
     });
 
     socketRef.current.on("answer", async ({ payload }) => {
@@ -50,7 +76,7 @@ export default function App() {
     });
 
     socketRef.current.on("ice-candidate", async ({ candidate }) => {
-      if (candidate) {
+      if (candidate && peerConnection.current) {
         try {
           await peerConnection.current.addIceCandidate(
             new RTCIceCandidate(candidate),
@@ -62,16 +88,12 @@ export default function App() {
     });
 
     socketRef.current.on("user-disconnected", () => {
-      if (partnerVideo.current) partnerVideo.current.srcObject = null;
-      if (peerConnection.current) {
-        peerConnection.current.close();
-        peerConnection.current = null;
-      }
+      cleanupCall();
       alert("Partner disconnected");
     });
 
     return () => {
-      socketRef.current.disconnect();
+      if (socketRef.current) socketRef.current.disconnect();
     };
   }, []);
 
@@ -132,8 +154,59 @@ export default function App() {
     const pc = createPeerConnection(targetID);
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
-    socketRef.current.emit("offer", { payload: offer, target: targetID });
+
+    // Instead of direct offer, send ring/incoming-call notification
+    socketRef.current.emit("call-user", {
+      userToCall: targetID,
+      signal: offer,
+    });
   }
+
+  async function acceptCall() {
+    setIncomingCall(null);
+    setCallAccepted(true);
+    const pc = createPeerConnection(incomingCall.from);
+    await pc.setRemoteDescription(
+      new RTCSessionDescription(incomingCall.signal),
+    );
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+
+    socketRef.current.emit("accept-call", {
+      to: incomingCall.from,
+      signal: answer,
+    });
+  }
+
+  function rejectCall() {
+    socketRef.current.emit("reject-call", { to: incomingCall.from });
+    setIncomingCall(null);
+  }
+
+  const toggleMic = () => {
+    const audioTrack = localStream.current?.getAudioTracks()[0];
+    if (audioTrack) {
+      audioTrack.enabled = !audioTrack.enabled;
+      setMicMuted(!audioTrack.enabled);
+    }
+  };
+
+  const toggleCam = () => {
+    const videoTrack = localStream.current?.getVideoTracks()[0];
+    if (videoTrack) {
+      videoTrack.enabled = !videoTrack.enabled;
+      setCamMuted(!videoTrack.enabled);
+    }
+  };
+
+  const cleanupCall = () => {
+    if (partnerVideo.current) partnerVideo.current.srcObject = null;
+    if (peerConnection.current) {
+      peerConnection.current.close();
+      peerConnection.current = null;
+    }
+    setCallAccepted(false);
+  };
 
   return (
     <div
@@ -142,6 +215,10 @@ export default function App() {
         maxWidth: "900px",
         margin: "0 auto",
         textAlign: "center",
+        background: "#0f172a",
+        color: "#fff",
+        minHeight: "100vh",
+        fontFamily: "sans-serif",
       }}
     >
       <h1 style={{ marginBottom: "1.5rem" }}>React WebRTC Video Call</h1>
@@ -198,6 +275,49 @@ export default function App() {
           >
             Connected to Room: <strong>{roomID}</strong>
           </p>
+
+          {incomingCall && !callAccepted && (
+            <div
+              style={{
+                background: "#334155",
+                padding: "1rem",
+                borderRadius: "8px",
+                marginBottom: "1.5rem",
+              }}
+            >
+              <p style={{ margin: "0 0 1rem 0" }}>Incoming Call...</p>
+              <button
+                onClick={acceptCall}
+                style={{
+                  background: "#16a34a",
+                  color: "#fff",
+                  padding: "0.5rem 1.2rem",
+                  border: "none",
+                  borderRadius: "4px",
+                  marginRight: "1rem",
+                  cursor: "pointer",
+                  fontWeight: "bold",
+                }}
+              >
+                Attend
+              </button>
+              <button
+                onClick={rejectCall}
+                style={{
+                  background: "#dc2626",
+                  color: "#fff",
+                  padding: "0.5rem 1.2rem",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  fontWeight: "bold",
+                }}
+              >
+                Reject
+              </button>
+            </div>
+          )}
+
           <div
             style={{
               display: "flex",
@@ -254,6 +374,61 @@ export default function App() {
               />
             </div>
           </div>
+
+          {/* Call Control Buttons: Mic Mute, Camera Mute, End Call */}
+          {callAccepted && (
+            <div
+              style={{
+                marginTop: "1.5rem",
+                display: "flex",
+                justifyContent: "center",
+                gap: "1rem",
+              }}
+            >
+              <button
+                onClick={toggleMic}
+                style={{
+                  padding: "0.6rem 1.2rem",
+                  background: micMuted ? "#dc2626" : "#475569",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  fontWeight: "bold",
+                }}
+              >
+                {micMuted ? "Unmute Mic" : "Mute Mic"}
+              </button>
+              <button
+                onClick={toggleCam}
+                style={{
+                  padding: "0.6rem 1.2rem",
+                  background: camMuted ? "#dc2626" : "#475569",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  fontWeight: "bold",
+                }}
+              >
+                {camMuted ? "Turn Cam On" : "Turn Cam Off"}
+              </button>
+              <button
+                onClick={cleanupCall}
+                style={{
+                  padding: "0.6rem 1.2rem",
+                  background: "#dc2626",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  fontWeight: "bold",
+                }}
+              >
+                End Call
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
