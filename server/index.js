@@ -1,15 +1,10 @@
 import express from "express";
 import http from "http";
 import { Server } from "socket.io";
-import mongoose from "mongoose";
 import cors from "cors";
-import dotenv from "dotenv";
-
-dotenv.config();
 
 const app = express();
 app.use(cors());
-app.use(express.json());
 
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -18,66 +13,41 @@ const io = new Server(server, {
     methods: ["GET", "POST"],
   },
 });
-// ----------------------
-// MongoDB connection (Optional - won't crash if MONGO_URI is missing)
-// ----------------------
-const MONGO_URI = process.env.MONGO_URI;
-if (MONGO_URI) {
-  mongoose
-    .connect(MONGO_URI)
-    .then(() => console.log("MongoDB connected"))
-    .catch((err) => console.error("MongoDB connection error:", err));
-} else {
-  console.log("MONGO_URI not provided. Running without database logging.");
-}
 
-// Optional Call log schema if DB is connected
-const CallLogSchema = new mongoose.Schema({
-  roomId: String,
-  createdAt: { type: Date, default: Date.now },
-});
-const CallLog =
-  mongoose.models.CallLog || mongoose.model("CallLog", CallLogSchema);
-
-// Signaling events with room size tracking
 io.on("connection", (socket) => {
-  console.log("User connected:", socket.id);
+  console.log(`User connected: ${socket.id}`);
 
-  socket.on("join-room", async (roomId) => {
-    socket.join(roomId);
-    const room = io.sockets.adapter.rooms.get(roomId);
-    console.log(`Room ${roomId} now has ${room ? room.size : 0} clients.`);
-
-    if (room && room.size === 2) {
-      console.log(`Notifying first user in room ${roomId} that peer joined.`);
-      socket.to(roomId).emit("peer-joined");
-    } else if (room && room.size > 2) {
-      socket.emit("room-full");
+  socket.on("join-room", (roomID) => {
+    socket.join(roomID);
+    console.log(`User ${socket.id} joined room: ${roomID}`);
+    const otherUser = Array.from(
+      io.sockets.adapter.rooms.get(roomID) || [],
+    ).find((id) => id !== socket.id);
+    if (otherUser) {
+      socket.emit("other-user", otherUser);
+      socket.to(otherUser).emit("user-joined", socket.id);
     }
   });
 
-  socket.on("offer", ({ roomId, offer }) => {
-    socket.to(roomId).emit("offer", offer);
+  socket.on("offer", ({ payload, target }) => {
+    io.to(target).emit("offer", { payload, caller: socket.id });
   });
 
-  socket.on("answer", ({ roomId, answer }) => {
-    socket.to(roomId).emit("answer", answer);
+  socket.on("answer", ({ payload, target }) => {
+    io.to(target).emit("answer", { payload, caller: socket.id });
   });
 
-  socket.on("ice-candidate", ({ roomId, candidate }) => {
-    socket.to(roomId).emit("ice-candidate", candidate);
-  });
-
-  socket.on("hangup", (roomId) => {
-    socket.to(roomId).emit("hangup");
+  socket.on("ice-candidate", ({ target, candidate }) => {
+    io.to(target).emit("ice-candidate", { candidate, sender: socket.id });
   });
 
   socket.on("disconnect", () => {
-    console.log("User disconnected:", socket.id);
+    console.log(`User disconnected: ${socket.id}`);
+    socket.broadcast.emit("user-disconnected", socket.id);
   });
 });
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
-  console.log(`Express signaling server running on port ${PORT}`);
+  console.log(`Signaling server running on port ${PORT}`);
 });

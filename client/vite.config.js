@@ -15,6 +15,6 @@ export default defineConfig({
   base: "/rtc_video_calling_app/", // Replace with your exact GitHub repository name
   plugins: [react()],
   server: {
-    port: 3040,
+    port: 3000,
   },
 });
