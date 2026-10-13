@@ -16,8 +16,7 @@ export default function App() {
   const [roomID, setRoomID] = useState("");
   const [inputRoom, setInputRoom] = useState("");
 
-  // New States for Call Controls & Incoming Call
-  const [incomingCall, setIncomingCall] = useState(null);
+  const [incomingCall, setIncomingCall] = useState(null); // { payload, caller }
   const [callAccepted, setCallAccepted] = useState(false);
   const [micMuted, setMicMuted] = useState(false);
   const [camMuted, setCamMuted] = useState(false);
@@ -28,68 +27,60 @@ export default function App() {
   const partnerVideo = useRef();
   const peerConnection = useRef();
   const localStream = useRef();
+  const iceCandidateQueue = useRef([]); // Queue ICE candidates arriving before remote description
 
   useEffect(() => {
     socketRef.current = io(serverURL);
 
+    // Triggered when you join a room and someone is already inside
     socketRef.current.on("other-user", (id) => {
       setPartnerID(id);
-      callUser(id);
     });
 
+    // Triggered when another user joins the room after you
     socketRef.current.on("user-joined", (id) => {
       setPartnerID(id);
     });
 
-    socketRef.current.on("incoming-call", ({ signal, from }) => {
-      setPartnerID(from);
-      setIncomingCall({ signal, from });
-    });
-
-    socketRef.current.on("call-accepted", async (signal) => {
-      setCallAccepted(true);
-      await peerConnection.current.setRemoteDescription(
-        new RTCSessionDescription(signal),
-      );
-    });
-
-    socketRef.current.on("call-rejected", () => {
-      alert("Call rejected by partner");
-      cleanupCall();
-    });
-
+    // When an offer arrives from partner, show Attend / Reject UI
     socketRef.current.on("offer", async ({ payload, caller }) => {
-      await createPeerConnection(caller);
-      await peerConnection.current.setRemoteDescription(
-        new RTCSessionDescription(payload),
-      );
-      const answer = await peerConnection.current.createAnswer();
-      await peerConnection.current.setLocalDescription(answer);
-      socketRef.current.emit("answer", { payload: answer, target: caller });
-      setCallAccepted(true);
+      setPartnerID(caller);
+      setIncomingCall({ payload, caller });
     });
 
     socketRef.current.on("answer", async ({ payload }) => {
-      await peerConnection.current.setRemoteDescription(
-        new RTCSessionDescription(payload),
-      );
+      if (peerConnection.current) {
+        await peerConnection.current.setRemoteDescription(
+          new RTCSessionDescription(payload),
+        );
+        processQueuedIceCandidates();
+        setCallAccepted(true);
+      }
     });
 
     socketRef.current.on("ice-candidate", async ({ candidate }) => {
-      if (candidate && peerConnection.current) {
-        try {
-          await peerConnection.current.addIceCandidate(
-            new RTCIceCandidate(candidate),
-          );
-        } catch (e) {
-          console.error("Error receiving ice candidate", e);
+      if (candidate) {
+        const pc = peerConnection.current;
+        if (pc && pc.remoteDescription && pc.remoteDescription.type) {
+          try {
+            await pc.addIceCandidate(new RTCIceCandidate(candidate));
+          } catch (e) {
+            console.error("Error adding received ice candidate", e);
+          }
+        } else {
+          iceCandidateQueue.current.push(candidate);
         }
       }
     });
 
+    socketRef.current.on("call-rejected", () => {
+      alert("Call was rejected by partner.");
+      cleanupCall();
+    });
+
     socketRef.current.on("user-disconnected", () => {
       cleanupCall();
-      alert("Partner disconnected");
+      alert("Partner disconnected.");
     });
 
     return () => {
@@ -150,37 +141,54 @@ export default function App() {
     return pc;
   }
 
-  async function callUser(targetID) {
-    const pc = createPeerConnection(targetID);
+  // Call partner manually once they are in the room
+  async function callPartner() {
+    if (!partnerID) {
+      alert("No partner in the room yet!");
+      return;
+    }
+    const pc = createPeerConnection(partnerID);
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
-
-    // Instead of direct offer, send ring/incoming-call notification
-    socketRef.current.emit("call-user", {
-      userToCall: targetID,
-      signal: offer,
-    });
+    socketRef.current.emit("offer", { payload: offer, target: partnerID });
   }
 
+  async function processQueuedIceCandidates() {
+    while (iceCandidateQueue.current.length > 0) {
+      const candidate = iceCandidateQueue.current.shift();
+      try {
+        await peerConnection.current.addIceCandidate(
+          new RTCIceCandidate(candidate),
+        );
+      } catch (e) {
+        console.error("Error adding queued ice candidate", e);
+      }
+    }
+  }
+
+  // Click 'Attend'
   async function acceptCall() {
+    if (!incomingCall) return;
+    const { payload, caller } = incomingCall;
     setIncomingCall(null);
-    setCallAccepted(true);
-    const pc = createPeerConnection(incomingCall.from);
-    await pc.setRemoteDescription(
-      new RTCSessionDescription(incomingCall.signal),
-    );
+
+    const pc = createPeerConnection(caller);
+    await pc.setRemoteDescription(new RTCSessionDescription(payload));
+    processQueuedIceCandidates();
+
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
 
-    socketRef.current.emit("accept-call", {
-      to: incomingCall.from,
-      signal: answer,
-    });
+    socketRef.current.emit("answer", { payload: answer, target: caller });
+    setCallAccepted(true);
   }
 
+  // Click 'Reject'
   function rejectCall() {
-    socketRef.current.emit("reject-call", { to: incomingCall.from });
-    setIncomingCall(null);
+    if (incomingCall) {
+      socketRef.current.emit("reject-call", { target: incomingCall.caller });
+      setIncomingCall(null);
+    }
   }
 
   const toggleMic = () => {
@@ -206,6 +214,8 @@ export default function App() {
       peerConnection.current = null;
     }
     setCallAccepted(false);
+    setIncomingCall(null);
+    iceCandidateQueue.current = [];
   };
 
   return (
@@ -273,9 +283,30 @@ export default function App() {
               color: "#38bdf8",
             }}
           >
-            Connected to Room: <strong>{roomID}</strong>
+            Connected to Room: <strong>{roomID}</strong>{" "}
+            {partnerID ? "(Partner in room)" : "(Waiting for partner...)"}
           </p>
 
+          {/* Call Partner Button */}
+          {partnerID && !callAccepted && !incomingCall && (
+            <button
+              onClick={callPartner}
+              style={{
+                marginBottom: "1rem",
+                padding: "0.6rem 1.2rem",
+                background: "#16a34a",
+                color: "#fff",
+                border: "none",
+                borderRadius: "4px",
+                cursor: "pointer",
+                fontWeight: "bold",
+              }}
+            >
+              Call Partner
+            </button>
+          )}
+
+          {/* Incoming Call UI (Attend / Reject Buttons) */}
           {incomingCall && !callAccepted && (
             <div
               style={{
@@ -285,7 +316,9 @@ export default function App() {
                 marginBottom: "1.5rem",
               }}
             >
-              <p style={{ margin: "0 0 1rem 0" }}>Incoming Call...</p>
+              <p style={{ margin: "0 0 1rem 0", fontWeight: "bold" }}>
+                Incoming Video Call...
+              </p>
               <button
                 onClick={acceptCall}
                 style={{
@@ -375,7 +408,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* Call Control Buttons: Mic Mute, Camera Mute, End Call */}
           {callAccepted && (
             <div
               style={{

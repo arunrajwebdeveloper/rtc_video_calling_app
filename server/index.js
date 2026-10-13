@@ -54,9 +54,20 @@ io.on("connection", (socket) => {
     io.to(target).emit("ice-candidate", { candidate, sender: socket.id });
   });
 
+  // socket.on("disconnect", () => {
+  //   console.log(`User disconnected: ${socket.id}`);
+  //   socket.broadcast.emit("user-disconnected", socket.id);
+  // });
+
   socket.on("disconnect", () => {
     console.log(`User disconnected: ${socket.id}`);
-    socket.broadcast.emit("user-disconnected", socket.id);
+
+    // Notify only the rooms this socket was in
+    socket.rooms.forEach((roomID) => {
+      if (roomID !== socket.id) {
+        socket.to(roomID).emit("user-disconnected", socket.id);
+      }
+    });
   });
 });
 
