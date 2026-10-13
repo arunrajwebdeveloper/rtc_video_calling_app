@@ -161,14 +161,12 @@ export default function App() {
   };
 
   const joinRoom = async () => {
-    if (!roomId) return alert("Enter or generate a Room ID first");
-    if (!isConnected)
-      return alert(
-        "Not connected to signaling server yet. Wait a moment or check Render backend.",
-      );
-    console.log("Joining room:", roomId);
+    const cleanRoomId = roomId.trim();
+    if (!cleanRoomId) return alert("Enter or generate a Room ID first");
+    if (!isConnected) return alert("Not connected to signaling server yet.");
+    console.log("Joining room:", cleanRoomId);
     setJoined(true);
-    socketRef.current.emit("join-room", roomId);
+    socketRef.current.emit("join-room", cleanRoomId);
   };
 
   const createOffer = async () => {
@@ -383,48 +381,48 @@ export default function App() {
       )}
 
       {/* 4. Incoming Call State (Second User receives offer -> Shows Pick Up button) */}
-      {incomingCall && (
-        <div
+      {/* {incomingCall && ( */}
+      <div
+        style={{
+          background: "#1e293b",
+          color: "#fff",
+          padding: "20px",
+          borderRadius: "8px",
+          margin: "20px 0",
+          border: "2px solid #16a34a",
+        }}
+      >
+        <h3>Incoming Call in Room: {roomId}</h3>
+        <button
+          onClick={pickCall}
           style={{
-            background: "#1e293b",
+            padding: "10px 20px",
+            background: "#16a34a",
             color: "#fff",
-            padding: "20px",
-            borderRadius: "8px",
-            margin: "20px 0",
-            border: "2px solid #16a34a",
+            border: "none",
+            borderRadius: "4px",
+            marginRight: "10px",
+            fontWeight: "bold",
+            cursor: "pointer",
           }}
         >
-          <h3>Incoming Call in Room: {roomId}</h3>
-          <button
-            onClick={pickCall}
-            style={{
-              padding: "10px 20px",
-              background: "#16a34a",
-              color: "#fff",
-              border: "none",
-              borderRadius: "4px",
-              marginRight: "10px",
-              fontWeight: "bold",
-              cursor: "pointer",
-            }}
-          >
-            Pick Up
-          </button>
-          <button
-            onClick={rejectCall}
-            style={{
-              padding: "10px 20px",
-              background: "#dc2626",
-              color: "#fff",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-            }}
-          >
-            Reject
-          </button>
-        </div>
-      )}
+          Pick Up
+        </button>
+        <button
+          onClick={rejectCall}
+          style={{
+            padding: "10px 20px",
+            background: "#dc2626",
+            color: "#fff",
+            border: "none",
+            borderRadius: "4px",
+            cursor: "pointer",
+          }}
+        >
+          Reject
+        </button>
+      </div>
+      {/* )} */}
 
       {/* 5. Active Call State */}
       {inCall && (
