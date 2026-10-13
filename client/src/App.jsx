@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 
-const SOCKET_SERVER_URL = import.meta.env.VITE_SOCKET_SERVER_URL;
+const SOCKET_SERVER_URL =
+  import.meta.env.VITE_SOCKET_SERVER_URL || "http://localhost:5656";
 
 const ICE_SERVERS = {
   iceServers: [
@@ -16,6 +17,7 @@ export default function App() {
   const [isCalling, setIsCalling] = useState(false);
   const [incomingCall, setIncomingCall] = useState(false);
   const [inCall, setInCall] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
 
   const socketRef = useRef(null);
   const pcRef = useRef(null);
@@ -38,26 +40,38 @@ export default function App() {
         }
       } catch (err) {
         console.error("Media access error:", err);
+        alert("Could not access camera/microphone. Please check permissions.");
       }
     };
 
     initLocalVideo();
 
-    socketRef.current = io(SOCKET_SERVER_URL);
+    // Initialize socket with transport fallbacks for Render
+    socketRef.current = io(SOCKET_SERVER_URL, {
+      transports: ["websocket", "polling"],
+    });
+
+    socketRef.current.on("connect", () => {
+      console.log("Connected to signaling server:", socketRef.current.id);
+      setIsConnected(true);
+    });
+
+    socketRef.current.on("connect_error", (err) => {
+      console.error("Socket connection error:", err);
+      setIsConnected(false);
+    });
 
     socketRef.current.on("room-full", () => {
       alert("Room is full!");
       resetCallState(false);
     });
 
-    // First person in room gets this when second person arrives
     socketRef.current.on("peer-joined", async () => {
       console.log("Peer joined. Creating offer as Caller...");
       setIsCalling(true);
       await createOffer();
     });
 
-    // Second person in room receives this and sees the Pick Up button
     socketRef.current.on("offer", async (offer) => {
       console.log("Received incoming call offer");
       window.pendingOffer = offer;
@@ -148,6 +162,10 @@ export default function App() {
 
   const joinRoom = async () => {
     if (!roomId) return alert("Enter or generate a Room ID first");
+    if (!isConnected)
+      return alert(
+        "Not connected to signaling server yet. Wait a moment or check Render backend.",
+      );
     console.log("Joining room:", roomId);
     setJoined(true);
     socketRef.current.emit("join-room", roomId);
@@ -192,6 +210,10 @@ export default function App() {
       pcRef.current = null;
     }
 
+    if (remoteVideoRef.current) {
+      remoteVideoRef.current.srcObject = null;
+    }
+
     iceCandidateQueueRef.current = [];
     setJoined(false);
     setIsCalling(false);
@@ -212,9 +234,16 @@ export default function App() {
         maxWidth: "800px",
         margin: "0 auto",
         textAlign: "center",
+        fontFamily: "sans-serif",
       }}
     >
-      <h1>Simple WebRTC Video Chat (Express)</h1>
+      <h1>Simple WebRTC Video Chat</h1>
+      <p
+        style={{ fontSize: "14px", color: isConnected ? "#16a34a" : "#dc2626" }}
+      >
+        Server Status:{" "}
+        {isConnected ? "Connected 🟢" : "Connecting / Disconnected 🔴"}
+      </p>
 
       {/* Video Feeds Display */}
       <div
@@ -275,6 +304,7 @@ export default function App() {
                 border: "none",
                 borderRadius: "4px",
                 marginRight: "10px",
+                cursor: "pointer",
               }}
             >
               Generate Room ID
@@ -303,6 +333,7 @@ export default function App() {
               color: "#fff",
               border: "none",
               borderRadius: "4px",
+              cursor: "pointer",
             }}
           >
             Join Room
@@ -312,7 +343,7 @@ export default function App() {
 
       {/* 2. Waiting State (First User) */}
       {joined && !isCalling && !incomingCall && !inCall && (
-        <div style={{ margin: "20px 0", color: "#94a3b8" }}>
+        <div style={{ margin: "20px 0", color: "#64748b" }}>
           <h3>Joined Room: {roomId}</h3>
           <p>Waiting for another user to join...</p>
           <button
@@ -323,6 +354,7 @@ export default function App() {
               color: "#fff",
               border: "none",
               borderRadius: "4px",
+              cursor: "pointer",
             }}
           >
             Cancel
@@ -332,7 +364,7 @@ export default function App() {
 
       {/* 3. Calling State (First User when peer joins) */}
       {isCalling && !inCall && (
-        <div style={{ margin: "20px 0", color: "#e2e8f0" }}>
+        <div style={{ margin: "20px 0" }}>
           <h3>Calling peer in room {roomId}...</h3>
           <button
             onClick={() => resetCallState(true)}
@@ -342,6 +374,7 @@ export default function App() {
               color: "#fff",
               border: "none",
               borderRadius: "4px",
+              cursor: "pointer",
             }}
           >
             Cancel Call
@@ -354,6 +387,7 @@ export default function App() {
         <div
           style={{
             background: "#1e293b",
+            color: "#fff",
             padding: "20px",
             borderRadius: "8px",
             margin: "20px 0",
@@ -371,6 +405,7 @@ export default function App() {
               borderRadius: "4px",
               marginRight: "10px",
               fontWeight: "bold",
+              cursor: "pointer",
             }}
           >
             Pick Up
@@ -383,6 +418,7 @@ export default function App() {
               color: "#fff",
               border: "none",
               borderRadius: "4px",
+              cursor: "pointer",
             }}
           >
             Reject
@@ -402,6 +438,7 @@ export default function App() {
               color: "#fff",
               border: "none",
               borderRadius: "4px",
+              cursor: "pointer",
             }}
           >
             End Call

@@ -19,19 +19,24 @@ const io = new Server(server, {
   },
 });
 
-// MongoDB connection
+// MongoDB connection (Optional - won't crash if MONGO_URI is missing)
 const MONGO_URI = process.env.MONGO_URI;
-mongoose
-  .connect(MONGO_URI)
-  .then(() => console.log("MongoDB connected"))
-  .catch((err) => console.error("MongoDB connection error:", err));
+if (MONGO_URI) {
+  mongoose
+    .connect(MONGO_URI)
+    .then(() => console.log("MongoDB connected"))
+    .catch((err) => console.error("MongoDB connection error:", err));
+} else {
+  console.log("MONGO_URI not provided. Running without database logging.");
+}
 
-// Call log schema
+// Optional Call log schema if DB is connected
 const CallLogSchema = new mongoose.Schema({
   roomId: String,
   createdAt: { type: Date, default: Date.now },
 });
-const CallLog = mongoose.model("CallLog", CallLogSchema);
+const CallLog =
+  mongoose.models.CallLog || mongoose.model("CallLog", CallLogSchema);
 
 // Signaling events with room size tracking
 io.on("connection", (socket) => {
