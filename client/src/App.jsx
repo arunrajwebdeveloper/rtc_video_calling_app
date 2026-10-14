@@ -308,12 +308,14 @@ export default function App() {
                   >
                     {isCalling ? "Calling..." : "Call Partner"}
                   </button>
-                  <button
-                    onClick={cancelCall}
-                    className="bg-slate-500 whitespace-nowrap text-white font-medium px-4 h-14 rounded-full outline-0 cursor-pointer"
-                  >
-                    Cancel Call
-                  </button>
+                  {isCalling && (
+                    <button
+                      onClick={cancelCall}
+                      className="bg-slate-500 whitespace-nowrap text-white font-medium px-4 h-14 rounded-full outline-0 cursor-pointer"
+                    >
+                      Cancel Call
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -404,7 +406,7 @@ export default function App() {
             {/* REMOTE USER VIDEO PREVIEW */}
             <div className="absolute w-full h-full top-0 left-0">
               <p className="absolute top-2 left-2 text-white z-10 transition-opacity duration-200 opacity-0 group-hover:opacity-100">
-                Partner (Remote) {remoteMicMuted && "🔇 (Mic Muted)"}
+                Partner (Remote)
               </p>
 
               {/* 1. Show if call is NOT yet accepted */}
@@ -426,6 +428,27 @@ export default function App() {
                   }}
                 >
                   {isCalling ? "Calling partner..." : "Call not connected"}
+                </div>
+              )}
+
+              {remoteMicMuted && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    height: "100%",
+                    background: "#0f172a",
+                    borderRadius: "4px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#94a3b8",
+                    fontWeight: "bold",
+                  }}
+                >
+                  Partner mic muted
                 </div>
               )}
 
