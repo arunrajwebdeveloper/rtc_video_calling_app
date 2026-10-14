@@ -136,12 +136,14 @@ export default function App() {
     }
   }
 
-  const endCall = () => {
+  function endCall() {
+    console.log("incomingCall :>> ", incomingCall);
     if (incomingCall) {
+      console.log("incomingCall.caller :>> ", incomingCall.caller);
       socketRef.current.emit("end-call", { target: incomingCall.caller });
       cleanupCall();
     }
-  };
+  }
 
   function createPeerConnection(targetID) {
     const pc = new RTCPeerConnection(configuration);
