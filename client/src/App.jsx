@@ -18,6 +18,7 @@ export default function App() {
 
   const [incomingCall, setIncomingCall] = useState(null); // { payload, caller }
   const [callAccepted, setCallAccepted] = useState(false);
+  const [isCalling, setIsCalling] = useState(false);
 
   // Local mute states
   const [micMuted, setMicMuted] = useState(false);
@@ -53,6 +54,7 @@ export default function App() {
     socketRef.current.on("offer", async ({ payload, caller }) => {
       setPartnerID(caller);
       setIncomingCall({ payload, caller });
+      setIsCalling(false);
     });
 
     socketRef.current.on("answer", async ({ payload }) => {
@@ -62,6 +64,7 @@ export default function App() {
         );
         processQueuedIceCandidates();
         setCallAccepted(true);
+        setIsCalling(false); // Call connected successfully
       }
     });
 
@@ -161,6 +164,7 @@ export default function App() {
       alert("No partner in the room yet!");
       return;
     }
+    setIsCalling(true);
     const pc = createPeerConnection(partnerID);
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
@@ -244,6 +248,7 @@ export default function App() {
       peerConnection.current = null;
     }
     setCallAccepted(false);
+    setIsCalling(false);
     setIncomingCall(null);
     setRemoteCamMuted(false);
     setRemoteMicMuted(false);
@@ -284,9 +289,10 @@ export default function App() {
               {partnerID && !callAccepted && !incomingCall && (
                 <button
                   onClick={callPartner}
+                  disabled={isCalling}
                   className="bg-green-500 text-white font-medium px-4 py-2.5 rounded-sm outline-0 cursor-pointer"
                 >
-                  Call Partner
+                  {isCalling ? "Calling..." : "Call Partner"}
                 </button>
               )}
 
@@ -376,7 +382,7 @@ export default function App() {
                     fontWeight: "bold",
                   }}
                 >
-                  Call not connected
+                  {isCalling ? "Calling partner..." : "Call not connected"}
                 </div>
               )}
 

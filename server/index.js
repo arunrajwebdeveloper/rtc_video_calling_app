@@ -59,6 +59,13 @@ io.on("connection", (socket) => {
     io.to(target).emit("media-toggle", { type, muted });
   });
 
+  // Notify peer that call has ended
+  socket.on("end-call", ({ target }) => {
+    if (target) {
+      io.to(target).emit("call-ended");
+    }
+  });
+
   socket.on("disconnect", () => {
     console.log(`User disconnected: ${socket.id}`);
 
