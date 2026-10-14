@@ -304,13 +304,13 @@ export default function App() {
                   <button
                     onClick={callPartner}
                     disabled={isCalling}
-                    className="bg-green-500 text-white font-medium px-4 h-14 rounded-full outline-0 cursor-pointer"
+                    className="bg-green-500 whitespace-nowrap text-white font-medium px-4 h-14 rounded-full outline-0 cursor-pointer"
                   >
                     {isCalling ? "Calling..." : "Call Partner"}
                   </button>
                   <button
                     onClick={cancelCall}
-                    className="bg-slate-500 text-white font-medium px-4 h-14 rounded-full outline-0 cursor-pointer"
+                    className="bg-slate-500 whitespace-nowrap text-white font-medium px-4 h-14 rounded-full outline-0 cursor-pointer"
                   >
                     Cancel Call
                   </button>
@@ -384,13 +384,13 @@ export default function App() {
 
             {/* LOCAL USER VIDEO PREVIEW */}
             {/* !incomingCall && callAccepted && */}
-            <div className="h-45 hover:h-55 group-hover:bottom-32 aspect-9/14 rounded-lg overflow-hidden absolute bottom-4 right-4 z-10 transition-all duration-200">
+            <div className="h-45 hover:h-55 aspect-9/14 rounded-lg overflow-hidden absolute top-4 right-4 z-10 transition-all duration-200">
               <p className="absolute bottom-2 left-2 text-white gap-2 flex items-center">
                 <span>You</span>
                 {micMuted && <MicOff className="text-white size-4" />}
               </p>
-              <div className="absolute w-fit top-1/2 left-1/2 transform -translate-y-1/2 -translate-yx-1/2 z-5">
-                {camMuted && <VideoOff className="text-white size-6" />}
+              <div className="absolute w-fit top-1/2 left-1/2 transform -translate-y-1/2 -translate-x-1/2 z-5">
+                {!camMuted && <VideoOff className="text-white size-6" />}
               </div>
               <video
                 ref={userVideo}
