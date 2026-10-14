@@ -291,7 +291,7 @@ export default function App() {
           </div>
         ) : (
           <div className="w-full h-full relative">
-            <p className="absolute top-8 left-2 font-normal text-sm text-white z-5">
+            <p className="absolute top-8 left-2 font-normal text-sm text-white z-5 transition-opacity duration-200 opacity-0 group-hover:opacity-100">
               Connected to Room: <strong>{roomID}</strong>{" "}
               {partnerID ? "(Partner in room)" : "(Waiting for partner...)"}
             </p>
@@ -403,7 +403,7 @@ export default function App() {
 
             {/* REMOTE USER VIDEO PREVIEW */}
             <div className="absolute w-full h-full top-0 left-0">
-              <p className="absolute top-2 left-2 text-white z-10">
+              <p className="absolute top-2 left-2 text-white z-10 transition-opacity duration-200 opacity-0 group-hover:opacity-100">
                 Partner (Remote) {remoteMicMuted && "🔇 (Mic Muted)"}
               </p>
 
