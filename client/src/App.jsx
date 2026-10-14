@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import io from "socket.io-client";
+import { MicOff, VideoOff } from "lucide-react";
 
 const serverURL =
   import.meta.env.VITE_SOCKET_SERVER_URL || "http://localhost:5656";
@@ -256,8 +257,8 @@ export default function App() {
   };
 
   return (
-    <div className="w-dvw h-screen flex bg-slate-50 select-none">
-      <div className="max-w-3xl w-full aspect-square m-auto bg-white shadow-2xl rounded-2xl overflow-hidden relative">
+    <div className="w-dvw h-screen flex bg-slate-50 select-none lg:p-2">
+      <div className="h-screen w-full lg:h-[80dvh] lg:w-fit lg:aspect-14/9 group m-auto bg-white shadow-2xl lg:rounded-2xl overflow-hidden relative">
         {!inRoom ? (
           <div className="w-full h-full flex">
             <div className="m-auto w-fit p-2">
@@ -345,10 +346,14 @@ export default function App() {
             </div>
 
             {/* LOCAL USER VIDEO PREVIEW */}
-            <div className="h-45 hover:h-55 aspect-9/14 rounded-lg overflow-hidden absolute bottom-4 right-4 z-10 transition-all duration-200">
+            <div className="h-45 hover:h-55 group-hover:bottom-32 aspect-9/14 rounded-lg overflow-hidden absolute bottom-4 right-4 z-10 transition-all duration-200">
               <p className="absolute bottom-2 left-2 text-white font-medium">
-                You {micMuted && "(Mic Muted)"} {camMuted && "(Cam Off)"}
+                You
               </p>
+              <div className="absolute w-fit top-1/2 left-1/2 transform -translate-y-1/2 -translate-yx-1/2 z-5">
+                {micMuted && <MicOff />}
+                {camMuted && <VideoOff />}
+              </div>
               <video
                 ref={userVideo}
                 autoPlay
