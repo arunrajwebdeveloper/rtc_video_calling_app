@@ -167,7 +167,6 @@ export default function App() {
         partnerVideo.current.srcObject = event.streams[0];
       }
     };
-
     return pc;
   }
 
