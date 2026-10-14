@@ -137,10 +137,8 @@ export default function App() {
   }
 
   function endCall() {
-    console.log("incomingCall :>> ", incomingCall);
-    if (incomingCall) {
-      console.log("incomingCall.caller :>> ", incomingCall.caller);
-      socketRef.current.emit("end-call", { target: incomingCall.caller });
+    if (partnerID) {
+      socketRef.current.emit("end-call", { target: partnerID });
       cleanupCall();
     }
   }
