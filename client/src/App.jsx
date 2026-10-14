@@ -390,7 +390,7 @@ export default function App() {
                 {micMuted && <MicOff className="text-white size-4" />}
               </p>
               <div className="absolute w-fit top-1/2 left-1/2 transform -translate-y-1/2 -translate-x-1/2 z-5">
-                {!camMuted && <VideoOff className="text-white size-6" />}
+                {camMuted && <VideoOff className="text-white size-6" />}
               </div>
               <video
                 ref={userVideo}
