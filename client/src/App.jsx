@@ -251,304 +251,226 @@ export default function App() {
   };
 
   return (
-    <div
-      style={{
-        padding: "2rem",
-        maxWidth: "900px",
-        margin: "0 auto",
-        textAlign: "center",
-        background: "#0f172a",
-        color: "#fff",
-        minHeight: "100vh",
-        fontFamily: "sans-serif",
-      }}
-    >
-      <h1 style={{ marginBottom: "1.5rem" }}>React WebRTC Video Call</h1>
-
-      {!inRoom ? (
-        <div
-          style={{
-            background: "#1e293b",
-            padding: "2rem",
-            borderRadius: "8px",
-            boxShadow: "0 4px 6px rgba(0,0,0,0.3)",
-          }}
-        >
-          <input
-            type="text"
-            placeholder="Enter Room ID (e.g. room123)"
-            value={inputRoom}
-            onChange={(e) => setInputRoom(e.target.value)}
-            style={{
-              padding: "0.75rem 1rem",
-              fontSize: "1rem",
-              borderRadius: "4px",
-              border: "1px solid #475569",
-              background: "#0f172a",
-              color: "#fff",
-              width: "60%",
-              marginRight: "1rem",
-            }}
-          />
-          <button
-            onClick={startCall}
-            style={{
-              padding: "0.75rem 1.5rem",
-              fontSize: "1rem",
-              fontWeight: "bold",
-              background: "#2563eb",
-              color: "#fff",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-            }}
-          >
-            Join Room
-          </button>
-        </div>
-      ) : (
-        <div>
-          <p
-            style={{
-              fontSize: "1.1rem",
-              marginBottom: "1rem",
-              color: "#38bdf8",
-            }}
-          >
-            Connected to Room: <strong>{roomID}</strong>{" "}
-            {partnerID ? "(Partner in room)" : "(Waiting for partner...)"}
-          </p>
-
-          {/* Call Partner Button */}
-          {partnerID && !callAccepted && !incomingCall && (
-            <button
-              onClick={callPartner}
-              style={{
-                marginBottom: "1rem",
-                padding: "0.6rem 1.2rem",
-                background: "#16a34a",
-                color: "#fff",
-                border: "none",
-                borderRadius: "4px",
-                cursor: "pointer",
-                fontWeight: "bold",
-              }}
-            >
-              Call Partner
-            </button>
-          )}
-
-          {/* Incoming Call UI (Attend / Reject Buttons) */}
-          {incomingCall && !callAccepted && (
-            <div
-              style={{
-                background: "#334155",
-                padding: "1rem",
-                borderRadius: "8px",
-                marginBottom: "1.5rem",
-              }}
-            >
-              <p style={{ margin: "0 0 1rem 0", fontWeight: "bold" }}>
-                Incoming Video Call...
-              </p>
+    <div className="w-dvw h-screen flex bg-slate-50 select-none">
+      <div className="max-w-3xl w-full aspect-square m-auto bg-white shadow-2xl rounded-2xl overflow-hidden relative">
+        {!inRoom ? (
+          <div className="w-full h-full flex">
+            <div className="m-auto w-fit p-2">
+              <input
+                type="text"
+                placeholder="Enter Room ID (e.g. room123)"
+                value={inputRoom}
+                onChange={(e) => setInputRoom(e.target.value)}
+                className="py-3 px-4 h-13 mr-2 bg-slate-100 font-normal text-base rounded-md outline-0 border-2 border-gray-200 focus:border-blue-500"
+              />
               <button
-                onClick={acceptCall}
-                style={{
-                  background: "#16a34a",
-                  color: "#fff",
-                  padding: "0.5rem 1.2rem",
-                  border: "none",
-                  borderRadius: "4px",
-                  marginRight: "1rem",
-                  cursor: "pointer",
-                  fontWeight: "bold",
-                }}
+                onClick={startCall}
+                className="p-3 h-13 bg-blue-600 text-white font-medium text-base rounded-md outline-0 cursor-pointer"
               >
-                Attend
-              </button>
-              <button
-                onClick={rejectCall}
-                style={{
-                  background: "#dc2626",
-                  color: "#fff",
-                  padding: "0.5rem 1.2rem",
-                  border: "none",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                  fontWeight: "bold",
-                }}
-              >
-                Reject
+                Join Room
               </button>
             </div>
-          )}
+          </div>
+        ) : (
+          <div className="w-full h-full relative">
+            <p className="absolute text-white z-5">
+              Connected to Room: <strong>{roomID}</strong>{" "}
+              {partnerID ? "(Partner in room)" : "(Waiting for partner...)"}
+            </p>
 
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              gap: "2rem",
-              flexWrap: "wrap",
-            }}
-          >
-            <div
-              style={{
-                background: "#1e293b",
-                padding: "1rem",
-                borderRadius: "8px",
-              }}
-            >
-              <p style={{ margin: "0 0 0.5rem 0", fontWeight: "bold" }}>
-                You (Local) {micMuted && "(Mic Muted)"}{" "}
-                {camMuted && "(Cam Off)"}
+            {/* Call Partner Button */}
+            {partnerID && !callAccepted && !incomingCall && (
+              <button
+                onClick={callPartner}
+                style={{
+                  marginBottom: "1rem",
+                  padding: "0.6rem 1.2rem",
+                  background: "#16a34a",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  fontWeight: "bold",
+                }}
+              >
+                Call Partner
+              </button>
+            )}
+
+            {/* Incoming Call UI (Attend / Reject Buttons) */}
+            {incomingCall && !callAccepted && (
+              <div
+                style={{
+                  background: "#334155",
+                  padding: "1rem",
+                  borderRadius: "8px",
+                  marginBottom: "1.5rem",
+                }}
+              >
+                <p style={{ margin: "0 0 1rem 0", fontWeight: "bold" }}>
+                  Incoming Video Call...
+                </p>
+                <button
+                  onClick={acceptCall}
+                  style={{
+                    background: "#16a34a",
+                    color: "#fff",
+                    padding: "0.5rem 1.2rem",
+                    border: "none",
+                    borderRadius: "4px",
+                    marginRight: "1rem",
+                    cursor: "pointer",
+                    fontWeight: "bold",
+                  }}
+                >
+                  Attend
+                </button>
+                <button
+                  onClick={rejectCall}
+                  style={{
+                    background: "#dc2626",
+                    color: "#fff",
+                    padding: "0.5rem 1.2rem",
+                    border: "none",
+                    borderRadius: "4px",
+                    cursor: "pointer",
+                    fontWeight: "bold",
+                  }}
+                >
+                  Reject
+                </button>
+              </div>
+            )}
+
+            {/* LOCAL USER VIDEO PREVIEW */}
+            <div className="h-45 hover:h-55 aspect-9/14 rounded-lg overflow-hidden absolute bottom-4 right-4 z-10 transition-all duration-200">
+              <p className="absolute bottom-2 left-2 text-white font-medium">
+                You {micMuted && "(Mic Muted)"} {camMuted && "(Cam Off)"}
               </p>
               <video
                 ref={userVideo}
                 autoPlay
                 muted
                 playsInline
-                style={{
-                  width: "350px",
-                  height: "260px",
-                  background: "#000",
-                  borderRadius: "4px",
-                  objectFit: "cover",
-                }}
+                className="w-full h-full bg-black object-cover"
               />
             </div>
-            <div
-              style={{
-                background: "#1e293b",
-                padding: "1rem",
-                borderRadius: "8px",
-              }}
-            >
-              <p style={{ margin: "0 0 0.5rem 0", fontWeight: "bold" }}>
+
+            {/* REMOTE USER VIDEO PREVIEW */}
+
+            <div className="absolute w-full h-full top-0 left-0">
+              <p className="absolute top-2 left-2 text-white z-10">
                 Partner (Remote) {remoteMicMuted && "🔇 (Mic Muted)"}
               </p>
 
+              {/* 1. Show if call is NOT yet accepted */}
+              {!callAccepted && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    height: "100%",
+                    background: "#0f172a",
+                    borderRadius: "4px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#94a3b8",
+                    fontWeight: "bold",
+                  }}
+                >
+                  Call not connected
+                </div>
+              )}
+
+              {/* 2. Show if call IS accepted, but partner turned off video */}
+              {callAccepted && remoteCamMuted && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    height: "100%",
+                    background: "#0f172a",
+                    borderRadius: "4px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#f87171",
+                    fontWeight: "bold",
+                  }}
+                >
+                  Partner Camera is Off
+                </div>
+              )}
+
+              <video
+                ref={partnerVideo}
+                autoPlay
+                playsInline
+                className="w-full h-full bg-black object-cover"
+              />
+            </div>
+
+            {callAccepted && (
               <div
                 style={{
-                  position: "relative",
-                  width: "350px",
-                  height: "260px",
+                  marginTop: "1.5rem",
+                  display: "flex",
+                  justifyContent: "center",
+                  gap: "1rem",
                 }}
               >
-                {/* 1. Show if call is NOT yet accepted */}
-                {!callAccepted && (
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: 0,
-                      left: 0,
-                      width: "100%",
-                      height: "100%",
-                      background: "#0f172a",
-                      borderRadius: "4px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "#94a3b8",
-                      fontWeight: "bold",
-                    }}
-                  >
-                    Call not connected
-                  </div>
-                )}
-
-                {/* 2. Show if call IS accepted, but partner turned off video */}
-                {callAccepted && remoteCamMuted && (
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: 0,
-                      left: 0,
-                      width: "100%",
-                      height: "100%",
-                      background: "#0f172a",
-                      borderRadius: "4px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "#f87171",
-                      fontWeight: "bold",
-                    }}
-                  >
-                    Partner Camera is Off
-                  </div>
-                )}
-
-                <video
-                  ref={partnerVideo}
-                  autoPlay
-                  playsInline
+                <button
+                  onClick={toggleMic}
                   style={{
-                    width: "350px",
-                    height: "260px",
-                    background: "#000",
+                    padding: "0.6rem 1.2rem",
+                    background: micMuted ? "#dc2626" : "#475569",
+                    color: "#fff",
+                    border: "none",
                     borderRadius: "4px",
-                    objectFit: "cover",
+                    cursor: "pointer",
+                    fontWeight: "bold",
                   }}
-                />
+                >
+                  {micMuted ? "Unmute Mic" : "Mute Mic"}
+                </button>
+                <button
+                  onClick={toggleCam}
+                  style={{
+                    padding: "0.6rem 1.2rem",
+                    background: camMuted ? "#dc2626" : "#475569",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: "4px",
+                    cursor: "pointer",
+                    fontWeight: "bold",
+                  }}
+                >
+                  {camMuted ? "Turn Cam On" : "Turn Cam Off"}
+                </button>
+                <button
+                  onClick={cleanupCall}
+                  style={{
+                    padding: "0.6rem 1.2rem",
+                    background: "#dc2626",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: "4px",
+                    cursor: "pointer",
+                    fontWeight: "bold",
+                  }}
+                >
+                  End Call
+                </button>
               </div>
-            </div>
+            )}
           </div>
-
-          {callAccepted && (
-            <div
-              style={{
-                marginTop: "1.5rem",
-                display: "flex",
-                justifyContent: "center",
-                gap: "1rem",
-              }}
-            >
-              <button
-                onClick={toggleMic}
-                style={{
-                  padding: "0.6rem 1.2rem",
-                  background: micMuted ? "#dc2626" : "#475569",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                  fontWeight: "bold",
-                }}
-              >
-                {micMuted ? "Unmute Mic" : "Mute Mic"}
-              </button>
-              <button
-                onClick={toggleCam}
-                style={{
-                  padding: "0.6rem 1.2rem",
-                  background: camMuted ? "#dc2626" : "#475569",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                  fontWeight: "bold",
-                }}
-              >
-                {camMuted ? "Turn Cam On" : "Turn Cam Off"}
-              </button>
-              <button
-                onClick={cleanupCall}
-                style={{
-                  padding: "0.6rem 1.2rem",
-                  background: "#dc2626",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                  fontWeight: "bold",
-                }}
-              >
-                End Call
-              </button>
-            </div>
-          )}
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
