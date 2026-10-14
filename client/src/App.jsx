@@ -415,7 +415,7 @@ export default function App() {
 
               {/* 1. Show if call is NOT yet accepted */}
               {!callAccepted && (
-                <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center text-[#94a3b8] font-medium">
+                <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center text-white font-medium">
                   {isCalling ? "Calling partner..." : "Call not connected"}
                 </div>
               )}
