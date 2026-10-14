@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import io from "socket.io-client";
-import { MicOff, VideoOff } from "lucide-react";
+import { Mic, MicOff, Phone, PhoneOff, Video, VideoOff } from "lucide-react";
 
 const serverURL =
   import.meta.env.VITE_SOCKET_SERVER_URL || "http://localhost:5656";
@@ -159,7 +159,6 @@ export default function App() {
   }
 
   // Call partner manually once they are in the room
-
   async function callPartner() {
     if (!partnerID) {
       alert("No partner in the room yet!");
@@ -171,6 +170,19 @@ export default function App() {
     await pc.setLocalDescription(offer);
     socketRef.current.emit("offer", { payload: offer, target: partnerID });
   }
+
+  // Cancel outgoing call
+  const cancelCall = () => {
+    if (partnerID) {
+      socketRef.current.emit("cancel-call", { target: partnerID });
+    }
+    if (peerConnection.current) {
+      peerConnection.current.close();
+      peerConnection.current = null;
+    }
+    setIsCalling(false);
+    iceCandidateQueue.current = [];
+  };
 
   async function processQueuedIceCandidates() {
     while (iceCandidateQueue.current.length > 0) {
@@ -279,7 +291,7 @@ export default function App() {
           </div>
         ) : (
           <div className="w-full h-full relative">
-            <p className="absolute text-white z-5">
+            <p className="absolute top-8 left-2 font-normal text-sm text-white z-5">
               Connected to Room: <strong>{roomID}</strong>{" "}
               {partnerID ? "(Partner in room)" : "(Waiting for partner...)"}
             </p>
@@ -288,13 +300,21 @@ export default function App() {
             <div className=" absolute z-5 bottom-5 left-1/2 w-fit transform -translate-x-1/2">
               {/* Call Partner Button */}
               {partnerID && !callAccepted && !incomingCall && (
-                <button
-                  onClick={callPartner}
-                  disabled={isCalling}
-                  className="bg-green-500 text-white font-medium px-4 py-2.5 rounded-sm outline-0 cursor-pointer"
-                >
-                  {isCalling ? "Calling..." : "Call Partner"}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={callPartner}
+                    disabled={isCalling}
+                    className="bg-green-500 text-white font-medium px-4 h-14 rounded-full outline-0 cursor-pointer"
+                  >
+                    {isCalling ? "Calling..." : "Call Partner"}
+                  </button>
+                  <button
+                    onClick={cancelCall}
+                    className="bg-slate-500 text-white font-medium px-4 h-14 rounded-full outline-0 cursor-pointer"
+                  >
+                    Cancel Call
+                  </button>
+                </div>
               )}
 
               {/* Incoming Call UI (Attend / Reject Buttons) */}
@@ -306,15 +326,17 @@ export default function App() {
                   <div className="w-full flex items-center gap-x-3">
                     <button
                       onClick={acceptCall}
-                      className="bg-green-500 text-white font-medium px-4 py-2.5 rounded-sm outline-0 cursor-pointer"
+                      className="bg-green-500 flex items-center gap-x-2 text-white font-medium px-4 h-14 rounded-full outline-0 cursor-pointer"
                     >
-                      Attend
+                      <Phone className="text-white size-5 flex-none" />
+                      <span>Attend</span>
                     </button>
                     <button
                       onClick={rejectCall}
-                      className="bg-red-500 text-white font-medium px-4 py-2.5 rounded-sm outline-0 cursor-pointer"
+                      className="bg-red-500 flex items-center gap-x-2 text-white font-medium px-4 h-14 rounded-full outline-0 cursor-pointer"
                     >
-                      Reject
+                      <PhoneOff className="text-white size-5 flex-none" />
+                      <span>Reject</span>
                     </button>
                   </div>
                 </div>
@@ -325,34 +347,50 @@ export default function App() {
                 <div className="flex gap-x-4">
                   <button
                     onClick={toggleMic}
-                    className="bg-slate-500 text-white font-medium px-4 py-2.5 rounded-sm outline-0 cursor-pointer"
+                    className="bg-slate-500 text-white flex font-medium flex-none w-14 h-14 rounded-full outline-0 cursor-pointer"
                   >
-                    {micMuted ? "Unmute Mic" : "Mute Mic"}
+                    {micMuted ? (
+                      <Mic className="text-white size-6 m-auto" />
+                    ) : (
+                      <MicOff className="text-white size-6 m-auto" />
+                    )}
+                    <span className="sr-only">
+                      {micMuted ? "Unmute Mic" : "Mute Mic"}
+                    </span>
                   </button>
                   <button
                     onClick={toggleCam}
-                    className="bg-slate-500 text-white font-medium px-4 py-2.5 rounded-sm outline-0 cursor-pointer"
+                    className="bg-slate-500 text-white flex font-medium flex-none w-14 h-14 rounded-full outline-0 cursor-pointer"
                   >
-                    {camMuted ? "Turn Cam On" : "Turn Cam Off"}
+                    {camMuted ? (
+                      <Video className="text-white size-6 m-auto" />
+                    ) : (
+                      <VideoOff className="text-white size-6 m-auto" />
+                    )}
+                    <span className="sr-only">
+                      {camMuted ? "Turn Cam On" : "Turn Cam Off"}
+                    </span>
                   </button>
                   <button
                     onClick={cleanupCall}
-                    className="bg-red-500 text-white font-medium px-4 py-2.5 rounded-sm outline-0 cursor-pointer"
+                    className="bg-red-500 text-white flex font-medium flex-none w-14 h-14 rounded-full outline-0 cursor-pointer"
                   >
-                    End Call
+                    <PhoneOff className="text-white size-6 m-auto" />
+                    <span className="sr-only">End Call</span>
                   </button>
                 </div>
               )}
             </div>
 
             {/* LOCAL USER VIDEO PREVIEW */}
+            {/* !incomingCall && callAccepted && */}
             <div className="h-45 hover:h-55 group-hover:bottom-32 aspect-9/14 rounded-lg overflow-hidden absolute bottom-4 right-4 z-10 transition-all duration-200">
-              <p className="absolute bottom-2 left-2 text-white font-medium">
-                You
+              <p className="absolute bottom-2 left-2 text-white gap-2 flex items-center">
+                <span>You</span>
+                {micMuted && <MicOff className="text-white size-4" />}
               </p>
               <div className="absolute w-fit top-1/2 left-1/2 transform -translate-y-1/2 -translate-yx-1/2 z-5">
-                {micMuted && <MicOff />}
-                {camMuted && <VideoOff />}
+                {camMuted && <VideoOff className="text-white size-6" />}
               </div>
               <video
                 ref={userVideo}
