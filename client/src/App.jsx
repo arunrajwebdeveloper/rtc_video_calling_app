@@ -421,7 +421,7 @@ export default function App() {
               )}
 
               {remoteMicMuted && (
-                <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center text-[#94a3b8] font-medium">
+                <div className="absolute top-0 left-0 w-full h-full text-shadow-black/50 flex items-center justify-center text-[#94a3b8] font-medium">
                   Partner mic muted
                 </div>
               )}
