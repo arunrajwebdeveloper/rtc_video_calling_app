@@ -278,69 +278,65 @@ export default function App() {
               {partnerID ? "(Partner in room)" : "(Waiting for partner...)"}
             </p>
 
-            {/* Call Partner Button */}
-            {partnerID && !callAccepted && !incomingCall && (
-              <button
-                onClick={callPartner}
-                style={{
-                  marginBottom: "1rem",
-                  padding: "0.6rem 1.2rem",
-                  background: "#16a34a",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                  fontWeight: "bold",
-                }}
-              >
-                Call Partner
-              </button>
-            )}
+            {/* CALL CONTROLLS BEFORE ATTEND */}
+            <div className=" absolute z-5 bottom-5 left-1/2 w-fit transform -translate-x-1/2">
+              {/* Call Partner Button */}
+              {partnerID && !callAccepted && !incomingCall && (
+                <button
+                  onClick={callPartner}
+                  className="bg-green-500 text-white font-medium px-4 py-2.5 rounded-sm outline-0 cursor-pointer"
+                >
+                  Call Partner
+                </button>
+              )}
 
-            {/* Incoming Call UI (Attend / Reject Buttons) */}
-            {incomingCall && !callAccepted && (
-              <div
-                style={{
-                  background: "#334155",
-                  padding: "1rem",
-                  borderRadius: "8px",
-                  marginBottom: "1.5rem",
-                }}
-              >
-                <p style={{ margin: "0 0 1rem 0", fontWeight: "bold" }}>
-                  Incoming Video Call...
-                </p>
-                <button
-                  onClick={acceptCall}
-                  style={{
-                    background: "#16a34a",
-                    color: "#fff",
-                    padding: "0.5rem 1.2rem",
-                    border: "none",
-                    borderRadius: "4px",
-                    marginRight: "1rem",
-                    cursor: "pointer",
-                    fontWeight: "bold",
-                  }}
-                >
-                  Attend
-                </button>
-                <button
-                  onClick={rejectCall}
-                  style={{
-                    background: "#dc2626",
-                    color: "#fff",
-                    padding: "0.5rem 1.2rem",
-                    border: "none",
-                    borderRadius: "4px",
-                    cursor: "pointer",
-                    fontWeight: "bold",
-                  }}
-                >
-                  Reject
-                </button>
-              </div>
-            )}
+              {/* Incoming Call UI (Attend / Reject Buttons) */}
+              {incomingCall && !callAccepted && (
+                <div>
+                  <p className="text-white font-medium text-center mb-4">
+                    Incoming video call...
+                  </p>
+                  <div className="w-full flex items-center gap-x-3">
+                    <button
+                      onClick={acceptCall}
+                      className="bg-green-500 text-white font-medium px-4 py-2.5 rounded-sm outline-0 cursor-pointer"
+                    >
+                      Attend
+                    </button>
+                    <button
+                      onClick={rejectCall}
+                      className="bg-red-500 text-white font-medium px-4 py-2.5 rounded-sm outline-0 cursor-pointer"
+                    >
+                      Reject
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Call controlls */}
+              {callAccepted && (
+                <div className="flex gap-x-4">
+                  <button
+                    onClick={toggleMic}
+                    className="bg-slate-500 text-white font-medium px-4 py-2.5 rounded-sm outline-0 cursor-pointer"
+                  >
+                    {micMuted ? "Unmute Mic" : "Mute Mic"}
+                  </button>
+                  <button
+                    onClick={toggleCam}
+                    className="bg-slate-500 text-white font-medium px-4 py-2.5 rounded-sm outline-0 cursor-pointer"
+                  >
+                    {camMuted ? "Turn Cam On" : "Turn Cam Off"}
+                  </button>
+                  <button
+                    onClick={cleanupCall}
+                    className="bg-red-500 text-white font-medium px-4 py-2.5 rounded-sm outline-0 cursor-pointer"
+                  >
+                    End Call
+                  </button>
+                </div>
+              )}
+            </div>
 
             {/* LOCAL USER VIDEO PREVIEW */}
             <div className="h-45 hover:h-55 aspect-9/14 rounded-lg overflow-hidden absolute bottom-4 right-4 z-10 transition-all duration-200">
@@ -357,7 +353,6 @@ export default function App() {
             </div>
 
             {/* REMOTE USER VIDEO PREVIEW */}
-
             <div className="absolute w-full h-full top-0 left-0">
               <p className="absolute top-2 left-2 text-white z-10">
                 Partner (Remote) {remoteMicMuted && "🔇 (Mic Muted)"}
@@ -414,60 +409,6 @@ export default function App() {
                 className="w-full h-full bg-black object-cover"
               />
             </div>
-
-            {callAccepted && (
-              <div
-                style={{
-                  marginTop: "1.5rem",
-                  display: "flex",
-                  justifyContent: "center",
-                  gap: "1rem",
-                }}
-              >
-                <button
-                  onClick={toggleMic}
-                  style={{
-                    padding: "0.6rem 1.2rem",
-                    background: micMuted ? "#dc2626" : "#475569",
-                    color: "#fff",
-                    border: "none",
-                    borderRadius: "4px",
-                    cursor: "pointer",
-                    fontWeight: "bold",
-                  }}
-                >
-                  {micMuted ? "Unmute Mic" : "Mute Mic"}
-                </button>
-                <button
-                  onClick={toggleCam}
-                  style={{
-                    padding: "0.6rem 1.2rem",
-                    background: camMuted ? "#dc2626" : "#475569",
-                    color: "#fff",
-                    border: "none",
-                    borderRadius: "4px",
-                    cursor: "pointer",
-                    fontWeight: "bold",
-                  }}
-                >
-                  {camMuted ? "Turn Cam On" : "Turn Cam Off"}
-                </button>
-                <button
-                  onClick={cleanupCall}
-                  style={{
-                    padding: "0.6rem 1.2rem",
-                    background: "#dc2626",
-                    color: "#fff",
-                    border: "none",
-                    borderRadius: "4px",
-                    cursor: "pointer",
-                    fontWeight: "bold",
-                  }}
-                >
-                  End Call
-                </button>
-              </div>
-            )}
           </div>
         )}
       </div>
