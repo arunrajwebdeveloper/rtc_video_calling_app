@@ -75,6 +75,7 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", () => {
     console.log(`User disconnected: ${socket.id}`);
+
     // Notify only the rooms this socket was in
     socket.rooms.forEach((roomID) => {
       if (roomID !== socket.id) {
