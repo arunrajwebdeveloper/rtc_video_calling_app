@@ -422,23 +422,17 @@ export default function App() {
                 Partner (Remote)
               </p>
 
-              {/* 1. Show if call is NOT yet accepted */}
+              {/*  Show if call is NOT yet accepted */}
               {!callAccepted && (
                 <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center text-[#94a3b8] font-medium">
                   {isCalling ? "Calling partner..." : "Call not connected"}
                 </div>
               )}
 
-              {remoteMicMuted && (
-                <div className="absolute top-0 left-0 w-full h-full text-shadow-sm text-shadow-black/50 flex items-center justify-center text-[#94a3b8] font-medium">
-                  Partner mic muted
-                </div>
-              )}
-
-              {/* 2. Show if call IS accepted, but partner turned off video */}
-              {callAccepted && remoteCamMuted && (
-                <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center text-[#94a3b8] font-medium">
-                  Partner Camera is Off
+              {callAccepted && (remoteMicMuted || remoteCamMuted) && (
+                <div className="absolute top-0 left-0 w-full h-full text-shadow-xs text-shadow-black/25 flex items-center justify-center text-white font-medium">
+                  {remoteMicMuted && <div>Partner mic muted</div>}
+                  {remoteCamMuted && <div>Partner Camera is Off</div>}
                 </div>
               )}
 
