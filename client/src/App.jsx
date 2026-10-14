@@ -95,6 +95,10 @@ export default function App() {
       alert("Call was rejected by partner.");
     });
 
+    socketRef.current.on("call-cancelled", () => {
+      setIncomingCall(null);
+    });
+
     socketRef.current.on("user-disconnected", () => {
       cleanupCall();
       alert("Partner disconnected.");
@@ -411,65 +415,20 @@ export default function App() {
 
               {/* 1. Show if call is NOT yet accepted */}
               {!callAccepted && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    width: "100%",
-                    height: "100%",
-                    background: "#0f172a",
-                    borderRadius: "4px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "#94a3b8",
-                    fontWeight: "bold",
-                  }}
-                >
+                <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center text-[#94a3b8] font-medium">
                   {isCalling ? "Calling partner..." : "Call not connected"}
                 </div>
               )}
 
               {remoteMicMuted && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    width: "100%",
-                    height: "100%",
-                    background: "#0f172a",
-                    borderRadius: "4px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "#94a3b8",
-                    fontWeight: "bold",
-                  }}
-                >
+                <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center text-[#94a3b8] font-medium">
                   Partner mic muted
                 </div>
               )}
 
               {/* 2. Show if call IS accepted, but partner turned off video */}
               {callAccepted && remoteCamMuted && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    width: "100%",
-                    height: "100%",
-                    background: "#0f172a",
-                    borderRadius: "4px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "#f87171",
-                    fontWeight: "bold",
-                  }}
-                >
+                <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center text-[#94a3b8] font-medium">
                   Partner Camera is Off
                 </div>
               )}

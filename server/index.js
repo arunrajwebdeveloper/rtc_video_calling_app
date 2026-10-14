@@ -66,7 +66,7 @@ io.on("connection", (socket) => {
     }
   });
 
-  // New: Handle cancelling an outgoing call
+  //  Handle cancelling an outgoing call
   socket.on("cancel-call", ({ target }) => {
     if (target) {
       io.to(target).emit("call-cancelled");
