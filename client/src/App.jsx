@@ -281,8 +281,8 @@ export default function App() {
   };
 
   return (
-    <div className="w-dvw h-screen flex bg-gray-600 select-none lg:p-2">
-      <div className="h-screen w-full lg:h-[80dvh] lg:w-fit lg:aspect-14/9 group m-auto bg-white shadow-2xl lg:rounded-2xl overflow-hidden relative">
+    <div className="w-dvw h-dvh flex bg-gray-600 select-none lg:p-2">
+      <div className="h-full w-full lg:h-[80dvh] lg:w-fit lg:aspect-14/9 group m-auto bg-white shadow-2xl lg:rounded-2xl overflow-hidden relative">
         {!inRoom ? (
           <div className="w-full h-full flex">
             <div className="m-auto w-fit p-2">
