@@ -30,16 +30,8 @@ io.on("connection", (socket) => {
   });
 
   // Call management events
-  socket.on("call-user", ({ userToCall, signal }) => {
-    io.to(userToCall).emit("incoming-call", { signal, from: socket.id });
-  });
-
-  socket.on("accept-call", ({ to, signal }) => {
-    io.to(to).emit("call-accepted", signal);
-  });
-
-  socket.on("reject-call", ({ to }) => {
-    io.to(to).emit("call-rejected");
+  socket.on("reject-call", ({ target }) => {
+    io.to(target).emit("call-rejected");
   });
 
   socket.on("offer", ({ payload, target }) => {

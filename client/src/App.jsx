@@ -92,16 +92,18 @@ export default function App() {
 
     socketRef.current.on("call-rejected", () => {
       cleanupCall();
-      alert("Call was rejected by partner.");
     });
 
     socketRef.current.on("call-cancelled", () => {
-      setIncomingCall(null);
+      cleanupCall();
     });
 
     socketRef.current.on("user-disconnected", () => {
       cleanupCall();
-      alert("Partner disconnected.");
+    });
+
+    socketRef.current.on("call-ended", () => {
+      cleanupCall();
     });
 
     return () => {
@@ -133,6 +135,13 @@ export default function App() {
       setInRoom(false);
     }
   }
+
+  const endCall = () => {
+    if (incomingCall) {
+      socketRef.current.emit("end-call", { target: incomingCall.caller });
+      cleanupCall();
+    }
+  };
 
   function createPeerConnection(targetID) {
     const pc = new RTCPeerConnection(configuration);
@@ -378,7 +387,7 @@ export default function App() {
                     </span>
                   </button>
                   <button
-                    onClick={cleanupCall}
+                    onClick={endCall}
                     className="bg-red-500 text-white flex font-medium flex-none w-14 h-14 rounded-full outline-0 cursor-pointer"
                   >
                     <PhoneOff className="text-white size-6 m-auto" />
@@ -421,7 +430,7 @@ export default function App() {
               )}
 
               {remoteMicMuted && (
-                <div className="absolute top-0 left-0 w-full h-full text-shadow-sm text-shadow-black flex items-center justify-center text-[#94a3b8] font-medium">
+                <div className="absolute top-0 left-0 w-full h-full text-shadow-sm text-shadow-black/50 flex items-center justify-center text-[#94a3b8] font-medium">
                   Partner mic muted
                 </div>
               )}
