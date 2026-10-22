@@ -15,20 +15,31 @@ const configuration = {
 // Generate constraints dynamically based on current screen orientation
 function getOrientationConstraints() {
   const isPortrait = window.matchMedia("(orientation: portrait)").matches;
-  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-  // If mobile and portrait, force vertical 9:16. Otherwise, use horizontal 16:9.
-  if (isMobile && isPortrait) {
+  // Use devicePixelRatio to convert CSS pixels into the true physical hardware resolution
+  const pixelRatio = window.devicePixelRatio || 1;
+  const physicalWidth = Math.round(window.screen.width * pixelRatio);
+  const physicalHeight = Math.round(window.screen.height * pixelRatio);
+
+  if (isPortrait) {
+    // 📱 Portrait: Force height to be the larger value
+    const targetWidth = Math.min(physicalWidth, physicalHeight);
+    const targetHeight = Math.max(physicalWidth, physicalHeight);
+
     return {
-      width: { ideal: 720 },
-      height: { ideal: 1280 },
-      aspectRatio: { ideal: 0.5625 }, // 9/16
+      width: { ideal: targetWidth },
+      height: { ideal: targetHeight },
+      aspectRatio: { ideal: targetWidth / targetHeight },
     };
   } else {
+    // 💻 Landscape: Force width to be the larger value
+    const targetWidth = Math.max(physicalWidth, physicalHeight);
+    const targetHeight = Math.min(physicalWidth, physicalHeight);
+
     return {
-      width: { ideal: 1280 },
-      height: { ideal: 720 },
-      aspectRatio: { ideal: 1.7777 }, // 16/9
+      width: { ideal: targetWidth },
+      height: { ideal: targetHeight },
+      aspectRatio: { ideal: targetWidth / targetHeight },
     };
   }
 }
