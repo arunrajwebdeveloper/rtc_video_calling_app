@@ -15,31 +15,25 @@ const configuration = {
 // Generate constraints dynamically based on current screen orientation
 function getOrientationConstraints() {
   const isPortrait = window.matchMedia("(orientation: portrait)").matches;
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-  // Use devicePixelRatio to convert CSS pixels into the true physical hardware resolution
-  const pixelRatio = window.devicePixelRatio || 1;
-  const physicalWidth = Math.round(window.screen.width * pixelRatio);
-  const physicalHeight = Math.round(window.screen.height * pixelRatio);
-
-  if (isPortrait) {
-    // Portrait: Force height to be the larger value
-    const targetWidth = Math.min(physicalWidth, physicalHeight);
-    const targetHeight = Math.max(physicalWidth, physicalHeight);
-
+  if (isMobile && isPortrait) {
+    //  Mobile Portrait:
+    // Request a very high vertical ideal (4K vertical). The phone browser will back down
+    // to the maximum vertical resolution the camera hardware supports (like FHD 1080x1920 or HD 720x1280).
     return {
-      width: { ideal: targetWidth },
-      height: { ideal: targetHeight },
-      aspectRatio: { ideal: targetWidth / targetHeight },
+      width: { min: 360, ideal: 2160 }, // Fallback minimum to avoid errors
+      height: { min: 640, ideal: 3840 }, // Massive target forces max hardware capability
+      aspectRatio: { ideal: 0.5625 }, // Stays strictly 9:16
     };
   } else {
-    // Landscape: Force width to be the larger value
-    const targetWidth = Math.max(physicalWidth, physicalHeight);
-    const targetHeight = Math.min(physicalWidth, physicalHeight);
-
+    //  Laptop/Desktop or Landscape Mobile:
+    // Request a high horizontal ideal. If the laptop camera maxes out at 720p (HD),
+    // the browser will automatically scale to 1280x720 instead of crashing.
     return {
-      width: { ideal: targetWidth },
-      height: { ideal: targetHeight },
-      aspectRatio: { ideal: targetWidth / targetHeight },
+      width: { min: 640, ideal: 3840 }, // Massive ideal forces laptop to give its best
+      height: { min: 360, ideal: 2160 },
+      aspectRatio: { ideal: 1.7777 }, // Stays strictly 16:9
     };
   }
 }
