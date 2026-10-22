@@ -22,7 +22,7 @@ function getOrientationConstraints() {
   const physicalHeight = Math.round(window.screen.height * pixelRatio);
 
   if (isPortrait) {
-    // 📱 Portrait: Force height to be the larger value
+    // Portrait: Force height to be the larger value
     const targetWidth = Math.min(physicalWidth, physicalHeight);
     const targetHeight = Math.max(physicalWidth, physicalHeight);
 
@@ -32,7 +32,7 @@ function getOrientationConstraints() {
       aspectRatio: { ideal: targetWidth / targetHeight },
     };
   } else {
-    // 💻 Landscape: Force width to be the larger value
+    // Landscape: Force width to be the larger value
     const targetWidth = Math.max(physicalWidth, physicalHeight);
     const targetHeight = Math.min(physicalWidth, physicalHeight);
 
