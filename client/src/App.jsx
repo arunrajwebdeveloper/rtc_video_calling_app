@@ -12,6 +12,27 @@ const configuration = {
   ],
 };
 
+// Generate constraints dynamically based on current screen orientation
+function getOrientationConstraints() {
+  const isPortrait = window.matchMedia("(orientation: portrait)").matches;
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+  // If mobile and portrait, force vertical 9:16. Otherwise, use horizontal 16:9.
+  if (isMobile && isPortrait) {
+    return {
+      width: { ideal: 720 },
+      height: { ideal: 1280 },
+      aspectRatio: { ideal: 0.5625 }, // 9/16
+    };
+  } else {
+    return {
+      width: { ideal: 1280 },
+      height: { ideal: 720 },
+      aspectRatio: { ideal: 1.7777 }, // 16/9
+    };
+  }
+}
+
 export default function App() {
   const [inRoom, setInRoom] = useState(false);
   const [roomID, setRoomID] = useState("");
@@ -37,6 +58,37 @@ export default function App() {
   const peerConnection = useRef();
   const localStream = useRef();
   const iceCandidateQueue = useRef([]); // Queue ICE candidates arriving before remote description
+
+  // Listen for rotation and update the video track live
+  function setupRotationListener() {
+    const orientationMediaQuery = window.matchMedia("(orientation: portrait)");
+
+    const handleOrientationChange = async () => {
+      // Corrected to look inside the React ref .current
+      if (!localStream.current) return;
+
+      const videoTrack = localStream.current.getVideoTracks()[0];
+      if (videoTrack) {
+        try {
+          const newConstraints = getOrientationConstraints();
+          await videoTrack.applyConstraints(newConstraints);
+          console.log("Camera constraints updated for orientation change.");
+        } catch (err) {
+          console.error("Failed to apply new orientation constraints:", err);
+        }
+      }
+    };
+
+    orientationMediaQuery.addEventListener("change", handleOrientationChange);
+
+    // Return clean up function to remove the listener later
+    return () => {
+      orientationMediaQuery.removeEventListener(
+        "change",
+        handleOrientationChange,
+      );
+    };
+  }
 
   useEffect(() => {
     socketRef.current = io(serverURL);
@@ -111,6 +163,14 @@ export default function App() {
     };
   }, []);
 
+  // Listen for orientation updates globally throughout the active session life
+  useEffect(() => {
+    const cleanupRotation = setupRotationListener();
+    return () => {
+      cleanupRotation();
+    };
+  }, []);
+
   async function startCall() {
     if (!inputRoom.trim()) {
       alert("Please enter a room name");
@@ -120,15 +180,26 @@ export default function App() {
     setInRoom(true);
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
+      // const stream = await navigator.mediaDevices.getUserMedia({
+      //   video: true,
+      //   audio: true,
+      // });
+
+      const constraints = {
+        video: {
+          ...getOrientationConstraints(),
+          facingMode: "user",
+        },
         audio: true,
-      });
+      };
+
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
       localStream.current = stream;
       if (userVideo.current) {
         userVideo.current.srcObject = stream;
       }
       socketRef.current.emit("join-room", inputRoom);
+      setupRotationListener();
     } catch (err) {
       console.error("Error accessing media devices.", err);
       alert("Could not access camera or microphone.");
@@ -398,7 +469,7 @@ export default function App() {
 
             {/* LOCAL USER VIDEO PREVIEW */}
             {/* !incomingCall && callAccepted && */}
-            <div className="h-45 hover:h-55 aspect-9/14 rounded-lg overflow-hidden absolute top-4 right-4 z-10 transition-all duration-200">
+            <div className="h-45 group-hover:h-55 aspect-9/14 rounded-lg overflow-hidden absolute top-4 right-4 z-10 transition-all duration-200">
               <p className="absolute bottom-2 left-2 text-white gap-2 flex items-center">
                 <span>You</span>
                 {micMuted && <MicOff className="text-white size-4" />}
