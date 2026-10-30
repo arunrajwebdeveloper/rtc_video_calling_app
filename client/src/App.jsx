@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import io from "socket.io-client";
 import { Mic, MicOff, Phone, PhoneOff, Video, VideoOff } from "lucide-react";
+import { cn } from "./lib/utils";
 
 const serverURL =
   import.meta.env.VITE_SOCKET_SERVER_URL || "http://localhost:5656";
@@ -438,12 +439,17 @@ export default function App() {
                 <div className="flex gap-x-4">
                   <button
                     onClick={toggleMic}
-                    className="bg-slate-500 text-white flex font-medium flex-none w-14 h-14 rounded-full outline-0 cursor-pointer"
+                    className={cn(
+                      " flex font-medium flex-none w-14 h-14 rounded-full outline-0 cursor-pointer",
+                      micMuted
+                        ? "bg-white text-slate-500"
+                        : "bg-slate-500 text-white",
+                    )}
                   >
                     {micMuted ? (
-                      <Mic className="text-white size-6 m-auto" />
+                      <Mic className="size-6 m-auto" />
                     ) : (
-                      <MicOff className="text-white size-6 m-auto" />
+                      <MicOff className="size-6 m-auto" />
                     )}
                     <span className="sr-only">
                       {micMuted ? "Unmute Mic" : "Mute Mic"}
@@ -451,12 +457,17 @@ export default function App() {
                   </button>
                   <button
                     onClick={toggleCam}
-                    className="bg-slate-500 text-white flex font-medium flex-none w-14 h-14 rounded-full outline-0 cursor-pointer"
+                    className={cn(
+                      " flex font-medium flex-none w-14 h-14 rounded-full outline-0 cursor-pointer",
+                      camMuted
+                        ? "bg-white text-slate-500"
+                        : "bg-slate-500 text-white",
+                    )}
                   >
                     {camMuted ? (
-                      <Video className="text-white size-6 m-auto" />
+                      <Video className="size-6 m-auto" />
                     ) : (
-                      <VideoOff className="text-white size-6 m-auto" />
+                      <VideoOff className="size-6 m-auto" />
                     )}
                     <span className="sr-only">
                       {camMuted ? "Turn Cam On" : "Turn Cam Off"}
