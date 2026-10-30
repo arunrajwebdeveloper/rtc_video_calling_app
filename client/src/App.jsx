@@ -488,7 +488,7 @@ export default function App() {
                 autoPlay
                 muted
                 playsInline
-                className="w-full h-full bg-black object-cover"
+                className="w-full h-full bg-black object-contain"
               />
             </div>
 
@@ -516,7 +516,7 @@ export default function App() {
                 ref={partnerVideo}
                 autoPlay
                 playsInline
-                className="w-full h-full bg-black object-cover"
+                className="w-full h-full bg-black object-contain"
               />
             </div>
           </div>
