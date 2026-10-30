@@ -169,12 +169,12 @@ export default function App() {
   }, []);
 
   // Listen for orientation updates globally throughout the active session life
-  useEffect(() => {
-    const cleanupRotation = setupRotationListener();
-    return () => {
-      cleanupRotation();
-    };
-  }, []);
+  // useEffect(() => {
+  //   const cleanupRotation = setupRotationListener();
+  //   return () => {
+  //     cleanupRotation();
+  //   };
+  // }, []);
 
   async function startCall() {
     if (!inputRoom.trim()) {
@@ -191,10 +191,11 @@ export default function App() {
       // });
 
       const constraints = {
-        video: {
-          ...getOrientationConstraints(),
-          facingMode: "user",
-        },
+        // video: {
+        //   ...getOrientationConstraints(),
+        //   facingMode: "user",
+        // },
+        video: true,
         audio: true,
       };
 
@@ -204,7 +205,7 @@ export default function App() {
         userVideo.current.srcObject = stream;
       }
       socketRef.current.emit("join-room", inputRoom);
-      setupRotationListener();
+      // setupRotationListener();
     } catch (err) {
       console.error("Error accessing media devices.", err);
       alert("Could not access camera or microphone.");
